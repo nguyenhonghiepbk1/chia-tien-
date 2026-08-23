@@ -52,6 +52,8 @@ fun AddExpenseDialog(
     members: List<TripMemberEntity>,
     exchangeRates: List<ExchangeRateEntity>,
     currentMemberId: String?,
+    initialExpense: com.example.data.entity.ExpenseEntity? = null,
+    initialSplits: List<com.example.data.entity.ExpenseSplitEntity> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (
         title: String,
@@ -67,15 +69,19 @@ fun AddExpenseDialog(
         timestamp: Long
     ) -> Unit
 ) {
+    val isEditMode = initialExpense != null
+
     // Basic Information
-    var title by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("FOOD") }
+    var title by remember { mutableStateOf(initialExpense?.title ?: "") }
+    var note by remember { mutableStateOf(initialExpense?.note ?: "") }
+    var category by remember { mutableStateOf(initialExpense?.category ?: "FOOD") }
 
     // Payer Selection
-    var payerType by remember { mutableStateOf("MEMBER") } // MEMBER or FUND
-    val defaultPayerId = remember(members, currentMemberId) {
-        if (members.any { it.id == currentMemberId }) {
+    var payerType by remember { mutableStateOf(initialExpense?.payerType ?: "MEMBER") } // MEMBER or FUND
+    val defaultPayerId = remember(members, currentMemberId, initialExpense) {
+        if (initialExpense?.payerMemberId != null) {
+            initialExpense.payerMemberId
+        } else if (members.any { it.id == currentMemberId }) {
             currentMemberId ?: ""
         } else {
             members.firstOrNull()?.id ?: ""
@@ -85,13 +91,13 @@ fun AddExpenseDialog(
     var payerDropdownExpanded by remember { mutableStateOf(false) }
 
     // Amount & Currency
-    var amountText by remember { mutableStateOf("") }
-    var selectedCurrency by remember { mutableStateOf("VND") }
-    var exchangeRateText by remember { mutableStateOf("1.0") }
+    var amountText by remember { mutableStateOf(initialExpense?.totalAmount?.toString() ?: "") }
+    var selectedCurrency by remember { mutableStateOf(initialExpense?.currency ?: "VND") }
+    var exchangeRateText by remember { mutableStateOf(initialExpense?.exchangeRate?.toString() ?: "1.0") }
 
     // Date & Time (Thời gian chi)
     val context = LocalContext.current
-    var expenseTimestamp by remember { mutableStateOf(System.currentTimeMillis()) }
+    var expenseTimestamp by remember { mutableStateOf(initialExpense?.timestamp ?: System.currentTimeMillis()) }
     val dateTimeFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
     var dateInputText by remember { mutableStateOf(dateTimeFormatter.format(Date(expenseTimestamp))) }
     var dateInputError by remember { mutableStateOf(false) }
@@ -134,12 +140,17 @@ fun AddExpenseDialog(
     }
 
     // Split Strategy: EQUAL, RATIO, CUSTOM_AMOUNT, CUSTOM_PARTICIPANT
-    var splitType by remember { mutableStateOf("EQUAL") }
+    var splitType by remember { mutableStateOf(initialExpense?.splitType ?: "EQUAL") }
 
     // Custom participant selection state
-    val selectedParticipantIds = remember(members) {
+    val selectedParticipantIds = remember(members, initialSplits) {
         mutableStateMapOf<String, Boolean>().apply {
-            members.forEach { put(it.id, it.isActive) }
+            if (initialSplits.isNotEmpty()) {
+                val splitMemberIds = initialSplits.map { it.memberId }.toSet()
+                members.forEach { put(it.id, splitMemberIds.contains(it.id)) }
+            } else {
+                members.forEach { put(it.id, it.isActive) }
+            }
         }
     }
 
@@ -153,9 +164,16 @@ fun AddExpenseDialog(
     }
 
     // Custom amounts state
-    val memberCustomAmounts = remember(members) {
+    val memberCustomAmounts = remember(members, initialSplits) {
         mutableStateMapOf<String, String>().apply {
-            members.forEach { put(it.id, "0") }
+            if (initialSplits.isNotEmpty()) {
+                members.forEach { m ->
+                    val sp = initialSplits.find { it.memberId == m.id }
+                    put(m.id, sp?.amount?.toString() ?: "0")
+                }
+            } else {
+                members.forEach { put(it.id, "0") }
+            }
         }
     }
 
@@ -269,12 +287,12 @@ fun AddExpenseDialog(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Thêm Khoản Chi Mới",
+                            text = if (isEditMode) "Chỉnh Sửa Khoản Chi" else "Thêm Khoản Chi Mới",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Nhập chi tiết thu chi và phân bổ đoàn",
+                            text = if (isEditMode) "Cập nhật chi tiết & phân bổ lại người tham gia" else "Nhập chi tiết thu chi và phân bổ đoàn",
                             fontSize = 11.sp,
                             color = Color(0xFF64748B)
                         )
@@ -1104,7 +1122,7 @@ fun AddExpenseDialog(
             ) {
                 Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Lưu Khoản Chi")
+                Text(if (isEditMode) "Lưu Thay Đổi" else "Lưu Khoản Chi")
             }
         },
         dismissButton = {

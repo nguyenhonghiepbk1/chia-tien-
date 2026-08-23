@@ -1,6 +1,7 @@
 package com.example.domain.export
 
 import com.example.data.entity.ExpenseEntity
+import com.example.data.entity.ExpenseSplitEntity
 import com.example.data.entity.FundContributionEntity
 import com.example.data.entity.TripEntity
 import com.example.data.entity.TripMemberEntity
@@ -31,6 +32,7 @@ object ReportGenerator {
         settlementTransfers: List<SettlementTransfer>,
         expenses: List<ExpenseEntity>,
         fundContributions: List<FundContributionEntity>,
+        splits: List<ExpenseSplitEntity> = emptyList(),
         reportType: ReportType,
         creatorName: String
     ): String {
@@ -43,7 +45,7 @@ object ReportGenerator {
                 tripTitle, joinCode, members, financialSummary, memberStatuses, settlementTransfers, expenses, creatorName, now
             )
             ReportType.EXPENSE_LEDGER -> generateExpenseLedgerReport(
-                tripTitle, joinCode, members, financialSummary, expenses, fundContributions, creatorName, now
+                tripTitle, joinCode, members, financialSummary, expenses, fundContributions, splits, creatorName, now
             )
             ReportType.TRANSFER_INSTRUCTIONS -> generateTransferInstructionsReport(
                 tripTitle, joinCode, settlementTransfers, creatorName, now
@@ -162,6 +164,7 @@ object ReportGenerator {
         summary: FinancialSummary,
         expenses: List<ExpenseEntity>,
         funds: List<FundContributionEntity>,
+        splits: List<ExpenseSplitEntity>,
         creatorName: String,
         date: Date
     ): String = buildString {
@@ -194,6 +197,17 @@ object ReportGenerator {
                     splitMode
                 )
             )
+
+            // Danh sách người tham gia được chọn cho mỗi khoản chi
+            val expSplits = splits.filter { it.expenseId == exp.id }
+            if (expSplits.isNotEmpty()) {
+                val participantsDetail = expSplits.joinToString("; ") { sp ->
+                    val memName = members.find { it.id == sp.memberId }?.name ?: "Thành viên"
+                    "$memName: ${NumberFormatUtils.formatVnd(sp.amount)}"
+                }
+                appendLine("       -> Người cùng chịu (${expSplits.size} người): $participantsDetail")
+            }
+
             if (exp.note.isNotBlank()) {
                 appendLine("       -> Ghi chú: ${exp.note}")
             }
@@ -299,7 +313,8 @@ object ReportGenerator {
         statuses: List<MemberFinancialStatus>,
         settlementTransfers: List<SettlementTransfer>,
         expenses: List<ExpenseEntity>,
-        funds: List<FundContributionEntity>
+        funds: List<FundContributionEntity>,
+        splits: List<ExpenseSplitEntity> = emptyList()
     ): String = buildString {
         // UTF-8 BOM prefix for Microsoft Excel Vietnamese compatibility
         append('\uFEFF')
@@ -339,10 +354,19 @@ object ReportGenerator {
 
         // Section 4: Expense Ledger
         appendLine("DANH SÁCH CHI TIÊU CHI TIẾT")
-        appendLine("STT,Thời gian,Tên khoản chi,Danh mục,Nguồn thanh toán,Số tiền gốc,Ngoại tệ,Tỷ giá,Quy đổi VND,Kiểu phân bổ,Ghi chú")
+        appendLine("STT,Thời gian,Tên khoản chi,Danh mục,Nguồn thanh toán,Số tiền gốc,Ngoại tệ,Tỷ giá,Quy đổi VND,Kiểu phân bổ,Danh sách người cùng chịu chi,Ghi chú")
         expenses.sortedBy { it.timestamp }.forEachIndexed { i, e ->
             val payer = if (e.payerType == "FUND") "Quỹ chung" else (members.find { it.id == e.payerMemberId }?.name ?: "")
-            appendLine("${i + 1},\"${dateFormat.format(Date(e.timestamp))}\",\"${e.title}\",\"${e.category}\",\"$payer\",${e.totalAmount},\"${e.currency}\",${e.exchangeRate},${e.convertedTotalAmount},\"${e.splitType}\",\"${e.note}\"")
+            val expSplits = splits.filter { it.expenseId == e.id }
+            val participantsDetail = if (expSplits.isNotEmpty()) {
+                expSplits.joinToString("; ") { sp ->
+                    val memName = members.find { it.id == sp.memberId }?.name ?: "TV"
+                    "$memName: ${sp.amount}"
+                }
+            } else {
+                ""
+            }
+            appendLine("${i + 1},\"${dateFormat.format(Date(e.timestamp))}\",\"${e.title}\",\"${e.category}\",\"$payer\",${e.totalAmount},\"${e.currency}\",${e.exchangeRate},${e.convertedTotalAmount},\"${e.splitType}\",\"$participantsDetail\",\"${e.note}\"")
         }
         appendLine()
 

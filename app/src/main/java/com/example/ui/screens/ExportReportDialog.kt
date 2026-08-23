@@ -54,7 +54,8 @@ fun ExportReportDialog(
                 statuses = uiState.memberStatuses,
                 settlementTransfers = uiState.settlementTransfers,
                 expenses = uiState.expenses,
-                funds = uiState.fundContributions
+                funds = uiState.fundContributions,
+                splits = uiState.allSplits
             )
         } else {
             ReportGenerator.generateTextReport(
@@ -65,6 +66,7 @@ fun ExportReportDialog(
                 settlementTransfers = uiState.settlementTransfers,
                 expenses = uiState.expenses,
                 fundContributions = uiState.fundContributions,
+                splits = uiState.allSplits,
                 reportType = selectedReportType,
                 creatorName = uiState.currentMember?.name ?: "Thành viên"
             )

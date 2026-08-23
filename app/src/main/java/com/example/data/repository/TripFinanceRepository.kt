@@ -100,6 +100,43 @@ class TripFinanceRepository(private val db: AppDatabase) {
 
     suspend fun updateTrip(trip: TripEntity) = db.tripDao().updateTrip(trip)
 
+    suspend fun updateTripDetails(
+        tripId: String,
+        title: String,
+        description: String,
+        startDate: Long,
+        endDate: Long,
+        actor: TripMemberEntity
+    ) {
+        val existing = db.tripDao().getTripByIdOnce(tripId) ?: return
+        val updated = existing.copy(
+            title = title,
+            description = description,
+            startDate = startDate,
+            endDate = endDate
+        )
+        db.tripDao().updateTrip(updated)
+        logAction(
+            tripId = tripId,
+            actorMemberId = actor.id,
+            actorName = actor.name,
+            action = "UPDATE_TRIP",
+            description = "Cập nhật thông tin đoàn '$title'"
+        )
+    }
+
+    suspend fun deleteTripCascade(tripId: String) {
+        // Cascade delete related records
+        db.expenseDao().deleteSplitsByTrip(tripId)
+        db.expenseDao().deleteExpensesByTrip(tripId)
+        db.fundDao().deleteFundsByTrip(tripId)
+        db.exchangeRateDao().deleteExchangeRatesByTrip(tripId)
+        db.settlementDao().deleteSnapshotsByTrip(tripId)
+        db.auditLogDao().deleteAuditLogsByTrip(tripId)
+        db.tripMemberDao().deleteMembersByTrip(tripId)
+        db.tripDao().deleteTripById(tripId)
+    }
+
     // Members
     fun getMembers(tripId: String): Flow<List<TripMemberEntity>> =
         db.tripMemberDao().getMembersByTrip(tripId)

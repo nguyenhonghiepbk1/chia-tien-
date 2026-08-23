@@ -53,6 +53,9 @@ interface TripMemberDao {
 
     @Query("DELETE FROM trip_members WHERE id = :memberId")
     suspend fun deleteMember(memberId: String)
+
+    @Query("DELETE FROM trip_members WHERE tripId = :tripId")
+    suspend fun deleteMembersByTrip(tripId: String)
 }
 
 @Dao
@@ -75,6 +78,9 @@ interface ExpenseDao {
     @Query("DELETE FROM expenses WHERE id = :expenseId")
     suspend fun deleteExpenseById(expenseId: String)
 
+    @Query("DELETE FROM expenses WHERE tripId = :tripId")
+    suspend fun deleteExpensesByTrip(tripId: String)
+
     // Splits
     @Query("SELECT * FROM expense_splits WHERE tripId = :tripId")
     fun getAllSplitsByTrip(tripId: String): Flow<List<ExpenseSplitEntity>>
@@ -90,6 +96,9 @@ interface ExpenseDao {
 
     @Query("DELETE FROM expense_splits WHERE expenseId = :expenseId")
     suspend fun deleteSplitsByExpense(expenseId: String)
+
+    @Query("DELETE FROM expense_splits WHERE tripId = :tripId")
+    suspend fun deleteSplitsByTrip(tripId: String)
 
     @Query("SELECT COUNT(*) FROM expenses WHERE payerMemberId = :memberId")
     suspend fun countExpensesByPayer(memberId: String): Int
@@ -115,6 +124,9 @@ interface FundDao {
     @Query("DELETE FROM fund_contributions WHERE id = :id")
     suspend fun deleteFundContribution(id: String)
 
+    @Query("DELETE FROM fund_contributions WHERE tripId = :tripId")
+    suspend fun deleteFundsByTrip(tripId: String)
+
     @Query("SELECT COUNT(*) FROM fund_contributions WHERE memberId = :memberId")
     suspend fun countFundContributionsByMember(memberId: String): Int
 }
@@ -132,6 +144,9 @@ interface ExchangeRateDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExchangeRate(rate: ExchangeRateEntity)
+
+    @Query("DELETE FROM exchange_rates WHERE tripId = :tripId")
+    suspend fun deleteExchangeRatesByTrip(tripId: String)
 }
 
 @Dao
@@ -144,6 +159,9 @@ interface SettlementDao {
 
     @Query("DELETE FROM settlement_snapshots WHERE id = :snapshotId")
     suspend fun deleteSnapshot(snapshotId: String)
+
+    @Query("DELETE FROM settlement_snapshots WHERE tripId = :tripId")
+    suspend fun deleteSnapshotsByTrip(tripId: String)
 }
 
 @Dao
@@ -153,4 +171,7 @@ interface AuditLogDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: AuditLogEntity)
+
+    @Query("DELETE FROM audit_logs WHERE tripId = :tripId")
+    suspend fun deleteAuditLogsByTrip(tripId: String)
 }

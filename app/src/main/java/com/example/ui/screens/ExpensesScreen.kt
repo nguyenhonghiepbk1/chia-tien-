@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.entity.ExpenseEntity
+import com.example.data.entity.ExpenseSplitEntity
 import com.example.data.entity.TripMemberEntity
 import com.example.ui.components.CategoryIcon
 import com.example.ui.components.NumberFormatUtils
@@ -41,14 +43,31 @@ import java.util.*
 fun ExpensesScreen(
     uiState: UiState,
     onOpenAddExpense: () -> Unit,
+    onEditExpense: (
+        expenseId: String,
+        title: String,
+        category: String,
+        payerType: String,
+        payerMemberId: String?,
+        totalAmount: Long,
+        currency: String,
+        exchangeRate: Double,
+        splitType: String,
+        splits: List<Pair<String, Long>>,
+        note: String,
+        timestamp: Long
+    ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _ -> },
     onDeleteExpense: (ExpenseEntity) -> Unit,
     onCategoryFilterChange: (String?) -> Unit,
     onSearchChange: (String) -> Unit
 ) {
     var selectedExpenseForDetail by remember { mutableStateOf<ExpenseEntity?>(null) }
+    var expenseToEdit by remember { mutableStateOf<ExpenseEntity?>(null) }
+    var expenseToDelete by remember { mutableStateOf<ExpenseEntity?>(null) }
 
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val isAdmin = uiState.currentMember?.role == "ADMIN"
 
     Scaffold(
         floatingActionButton = {
@@ -172,9 +191,10 @@ fun ExpensesScreen(
                         ExpenseItemCard(
                             expense = expense,
                             members = uiState.members,
-                            currentMember = uiState.currentMember,
+                            isAdmin = isAdmin,
                             onClick = { selectedExpenseForDetail = expense },
-                            onDelete = { onDeleteExpense(expense) }
+                            onEdit = { expenseToEdit = expense },
+                            onDelete = { expenseToDelete = expense }
                         )
                     }
                 }
@@ -184,10 +204,73 @@ fun ExpensesScreen(
 
     // Expense Detail Dialog
     selectedExpenseForDetail?.let { exp ->
+        val splitsForExp = uiState.allSplits.filter { it.expenseId == exp.id }
         ExpenseDetailDialog(
             expense = exp,
             members = uiState.members,
-            onDismiss = { selectedExpenseForDetail = null }
+            splits = splitsForExp,
+            isAdmin = isAdmin,
+            onDismiss = { selectedExpenseForDetail = null },
+            onEdit = {
+                selectedExpenseForDetail = null
+                expenseToEdit = exp
+            },
+            onDelete = {
+                selectedExpenseForDetail = null
+                expenseToDelete = exp
+            }
+        )
+    }
+
+    // Edit Expense Dialog
+    expenseToEdit?.let { exp ->
+        val splitsForExp = uiState.allSplits.filter { it.expenseId == exp.id }
+        AddExpenseDialog(
+            members = uiState.members,
+            exchangeRates = uiState.exchangeRates,
+            currentMemberId = uiState.currentMember?.id,
+            initialExpense = exp,
+            initialSplits = splitsForExp,
+            onDismiss = { expenseToEdit = null },
+            onSave = { title, category, payerType, payerMemberId, totalAmount, currency, exchangeRate, splitType, splits, note, timestamp ->
+                onEditExpense(
+                    exp.id, title, category, payerType, payerMemberId, totalAmount, currency, exchangeRate, splitType, splits, note, timestamp
+                )
+                expenseToEdit = null
+            }
+        )
+    }
+
+    // Delete Confirmation Dialog
+    expenseToDelete?.let { exp ->
+        AlertDialog(
+            onDismissRequest = { expenseToDelete = null },
+            icon = {
+                Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            },
+            title = {
+                Text("Xác Nhận Xóa Khoản Chi", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("Bạn có chắc chắn muốn xóa khoản chi '${exp.title}' (${NumberFormatUtils.formatVnd(exp.convertedTotalAmount)})? Thao tác này chỉ dành cho Trưởng đoàn.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteExpense(exp)
+                        expenseToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag("confirm_delete_expense_button")
+                ) {
+                    Text("Xóa khoản chi")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { expenseToDelete = null }) {
+                    Text("Hủy")
+                }
+            }
         )
     }
 }
@@ -196,8 +279,9 @@ fun ExpensesScreen(
 fun ExpenseItemCard(
     expense: ExpenseEntity,
     members: List<TripMemberEntity>,
-    currentMember: TripMemberEntity?,
+    isAdmin: Boolean,
     onClick: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val payerName = if (expense.payerType == "FUND") {
@@ -208,11 +292,6 @@ fun ExpenseItemCard(
 
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     val dateStr = dateFormat.format(Date(expense.timestamp))
-
-    // Can delete if ADMIN, TREASURER, or creator
-    val canDelete = currentMember?.role == "ADMIN" ||
-            currentMember?.role == "TREASURER" ||
-            expense.createdMemberId == currentMember?.id
 
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -281,17 +360,33 @@ fun ExpenseItemCard(
                     )
                 }
 
-                if (canDelete) {
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(24.dp)
+                if (isAdmin) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Filled.DeleteOutline,
-                            contentDescription = "Xóa",
-                            tint = Color(0xFFEF4444),
-                            modifier = Modifier.size(16.dp)
-                        )
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(28.dp).testTag("edit_expense_${expense.id}")
+                        ) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "Sửa khoản chi",
+                                tint = IndigoSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.size(28.dp).testTag("delete_expense_${expense.id}")
+                        ) {
+                            Icon(
+                                Icons.Filled.DeleteOutline,
+                                contentDescription = "Xóa khoản chi",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -303,7 +398,11 @@ fun ExpenseItemCard(
 fun ExpenseDetailDialog(
     expense: ExpenseEntity,
     members: List<TripMemberEntity>,
-    onDismiss: () -> Unit
+    splits: List<ExpenseSplitEntity> = emptyList(),
+    isAdmin: Boolean = false,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     val payerMember = members.find { it.id == expense.payerMemberId }
@@ -353,74 +452,153 @@ fun ExpenseDetailDialog(
             }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = EmeraldPrimaryContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 450.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = EmeraldPrimaryContainer,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Tổng số tiền quy đổi (VND)", fontSize = 11.sp, color = EmeraldOnPrimaryContainer)
-                        Text(
-                            text = NumberFormatUtils.formatVnd(expense.convertedTotalAmount),
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EmeraldOnPrimaryContainer
-                        )
-                        if (expense.currency != "VND") {
-                            Spacer(modifier = Modifier.height(2.dp))
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Tổng số tiền quy đổi (VND)", fontSize = 11.sp, color = EmeraldOnPrimaryContainer)
                             Text(
-                                text = "Tiền gốc: ${expense.totalAmount} ${expense.currency} • Tỷ giá: ${expense.exchangeRate}",
-                                fontSize = 12.sp,
+                                text = NumberFormatUtils.formatVnd(expense.convertedTotalAmount),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = EmeraldOnPrimaryContainer
+                            )
+                            if (expense.currency != "VND") {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Tiền gốc: ${expense.totalAmount} ${expense.currency} • Tỷ giá: ${expense.exchangeRate}",
+                                    fontSize = 12.sp,
+                                    color = EmeraldOnPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "• Danh mục: $categoryLabel",
+                            fontSize = 13.sp,
+                            color = Color(0xFF1E293B)
+                        )
+                        Text(
+                            text = "• Người xuất tiền: $payerName",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF1E293B)
+                        )
+                        Text(
+                            text = "• Cách phân bổ: $splitTypeLabel",
+                            fontSize = 13.sp,
+                            color = Color(0xFF1E293B)
+                        )
+                        if (expense.note.isNotBlank()) {
+                            HorizontalDivider(color = Color(0xFFE2E8F0), modifier = Modifier.padding(vertical = 2.dp))
+                            Text(
+                                text = "• Ghi chú: ${expense.note}",
+                                fontSize = 13.sp,
+                                color = Color(0xFF334155)
                             )
                         }
                     }
                 }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
-                        .padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "• Danh mục: $categoryLabel",
-                        fontSize = 13.sp,
-                        color = Color(0xFF1E293B)
-                    )
-                    Text(
-                        text = "• Người xuất tiền: $payerName",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF1E293B)
-                    )
-                    Text(
-                        text = "• Phân bổ: $splitTypeLabel",
-                        fontSize = 13.sp,
-                        color = Color(0xFF1E293B)
-                    )
-                    if (expense.note.isNotBlank()) {
-                        HorizontalDivider(color = Color(0xFFE2E8F0), modifier = Modifier.padding(vertical = 2.dp))
+                // Participant splits breakdown list
+                if (splits.isNotEmpty()) {
+                    item {
                         Text(
-                            text = "• Chi tiết / Ghi chú: ${expense.note}",
+                            text = "Danh Sách Người Tham Gia (${splits.size} người):",
                             fontSize = 13.sp,
-                            color = Color(0xFF334155)
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E293B)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF1F5F9), RoundedCornerShape(8.dp))
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            splits.forEach { sp ->
+                                val memName = members.find { it.id == sp.memberId }?.name ?: "Thành viên"
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = memName,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF334155)
+                                    )
+                                    Text(
+                                        text = NumberFormatUtils.formatVnd(sp.amount),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = EmeraldPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!isAdmin) {
+                    item {
+                        Text(
+                            text = "ℹ️ Chỉ Trưởng đoàn (Admin) mới có quyền sửa hoặc xóa khoản chi này.",
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
                         )
                     }
                 }
             }
         },
         confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
-            ) {
-                Text("Đóng")
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (isAdmin) {
+                    OutlinedButton(
+                        onClick = onEdit,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = IndigoSecondary)
+                    ) {
+                        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Sửa")
+                    }
+                    Button(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Xóa")
+                    }
+                }
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
+                ) {
+                    Text("Đóng")
+                }
             }
         }
     )

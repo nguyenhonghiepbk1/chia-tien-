@@ -34,6 +34,10 @@ import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
+import com.example.ui.locale.AppLanguage
+import com.example.ui.locale.AppStrings
+import com.example.ui.locale.LocalAppLanguage
+
 object NumberFormatUtils {
     private val symbols = DecimalFormatSymbols(Locale.getDefault()).apply {
         groupingSeparator = '.'
@@ -80,11 +84,12 @@ fun CategoryIcon(category: String, modifier: Modifier = Modifier, size: Int = 20
 
 @Composable
 fun RoleBadge(role: String, modifier: Modifier = Modifier) {
+    val lang = LocalAppLanguage.current
     val (text, bg, textColor) = when (role) {
-        "ADMIN" -> Triple("Trưởng đoàn", Color(0xFFFEE2E2), Color(0xFF991B1B))
-        "TREASURER" -> Triple("Thủ quỹ", Color(0xFFCCFBF1), Color(0xFF115E59))
-        "MEMBER" -> Triple("Thành viên", Color(0xFFE0E7FF), Color(0xFF3730A3))
-        else -> Triple("Người xem", Color(0xFFF1F5F9), Color(0xFF475569))
+        "ADMIN" -> Triple(if (lang == AppLanguage.VI) "Trưởng đoàn" else "Admin", Color(0xFFFEE2E2), Color(0xFF991B1B))
+        "TREASURER" -> Triple(if (lang == AppLanguage.VI) "Thủ quỹ" else "Treasurer", Color(0xFFCCFBF1), Color(0xFF115E59))
+        "MEMBER" -> Triple(if (lang == AppLanguage.VI) "Thành viên" else "Member", Color(0xFFE0E7FF), Color(0xFF3730A3))
+        else -> Triple(if (lang == AppLanguage.VI) "Người xem" else "Viewer", Color(0xFFF1F5F9), Color(0xFF475569))
     }
 
     Surface(
@@ -104,19 +109,20 @@ fun RoleBadge(role: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun BalanceChip(balance: Long, status: BalanceStatus, modifier: Modifier = Modifier) {
+    val lang = LocalAppLanguage.current
     val (text, bg, fg) = when (status) {
         BalanceStatus.RECEIVE -> Triple(
-            "+${NumberFormatUtils.formatVnd(balance)} (Nhận lại)",
+            "+${NumberFormatUtils.formatVnd(balance)} " + if (lang == AppLanguage.VI) "(Nhận lại)" else "(To receive)",
             Color(0xFFDCFCE7),
             Color(0xFF15803D)
         )
         BalanceStatus.PAY -> Triple(
-            "${NumberFormatUtils.formatVnd(balance)} (Cần nộp)",
+            "${NumberFormatUtils.formatVnd(balance)} " + if (lang == AppLanguage.VI) "(Cần nộp)" else "(To pay)",
             Color(0xFFFEE2E2),
             Color(0xFFB91C1C)
         )
         BalanceStatus.BALANCED -> Triple(
-            "0 đ (Cân bằng)",
+            "0 đ " + if (lang == AppLanguage.VI) "(Cân bằng)" else "(Balanced)",
             Color(0xFFF1F5F9),
             Color(0xFF475569)
         )
@@ -143,6 +149,7 @@ fun OfflineStatusBanner(
     pendingCount: Int,
     onToggleOffline: () -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     Surface(
         color = if (isOffline) Color(0xFFFEF3C7) else Color(0xFFECFDF5),
         modifier = Modifier.fillMaxWidth()
@@ -164,9 +171,9 @@ fun OfflineStatusBanner(
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = if (isOffline) {
-                        "Đang Offline • $pendingCount bản ghi chờ đồng bộ"
+                        if (lang == AppLanguage.VI) "Đang Offline • $pendingCount bản ghi chờ đồng bộ" else "Offline Mode • $pendingCount changes pending sync"
                     } else {
-                        "Đang kết nối Realtime • Đã đồng bộ 100%"
+                        if (lang == AppLanguage.VI) "Đang kết nối Realtime • Đã đồng bộ 100%" else "Realtime Connected • 100% Synced"
                     },
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -179,7 +186,11 @@ fun OfflineStatusBanner(
                 modifier = Modifier.height(28.dp)
             ) {
                 Text(
-                    text = if (isOffline) "Thử Online" else "Chuyển Offline",
+                    text = if (isOffline) {
+                        if (lang == AppLanguage.VI) "Thử Online" else "Go Online"
+                    } else {
+                        if (lang == AppLanguage.VI) "Chuyển Offline" else "Go Offline"
+                    },
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isOffline) Color(0xFFB45309) else Color(0xFF047857)
@@ -194,6 +205,7 @@ fun VietQrTransferDialog(
     transfer: SettlementTransfer,
     onDismiss: () -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     val clipboardManager = LocalClipboardManager.current
     var copiedText by remember { mutableStateOf<String?>(null) }
 
@@ -210,7 +222,7 @@ fun VietQrTransferDialog(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Thông Tin Chuyển Khoản",
+                    text = if (lang == AppLanguage.VI) "Thông Tin Chuyển Khoản" else "Transfer Details",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -234,7 +246,7 @@ fun VietQrTransferDialog(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Số tiền thanh toán",
+                            text = if (lang == AppLanguage.VI) "Số tiền thanh toán" else "Payment Amount",
                             fontSize = 12.sp,
                             color = EmeraldOnPrimaryContainer
                         )
@@ -259,7 +271,7 @@ fun VietQrTransferDialog(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "NGƯỜI NHẬN TIỀN",
+                            text = if (lang == AppLanguage.VI) "NGƯỜI NHẬN TIỀN" else "RECIPIENT",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF64748B)
@@ -273,18 +285,18 @@ fun VietQrTransferDialog(
                         HorizontalDivider(color = Color(0xFFE2E8F0))
 
                         Text(
-                            text = "NGÂN HÀNG: ${transfer.toMember.bankName ?: "Chưa cập nhật"}",
+                            text = "${if (lang == AppLanguage.VI) "NGÂN HÀNG" else "BANK"}: ${transfer.toMember.bankName ?: if (lang == AppLanguage.VI) "Chưa cập nhật" else "Not updated"}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "SỐ TÀI KHOẢN: ${transfer.toMember.bankAccount ?: "Chưa cập nhật"}",
+                            text = "${if (lang == AppLanguage.VI) "SỐ TÀI KHOẢN" else "ACCOUNT NUMBER"}: ${transfer.toMember.bankAccount ?: if (lang == AppLanguage.VI) "Chưa cập nhật" else "Not updated"}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = IndigoSecondary
                         )
                         Text(
-                            text = "CHỦ TÀI KHOẢN: ${transfer.toMember.bankAccountHolder ?: transfer.toMember.name.uppercase()}",
+                            text = "${if (lang == AppLanguage.VI) "CHỦ TÀI KHOẢN" else "ACCOUNT HOLDER"}: ${transfer.toMember.bankAccountHolder ?: transfer.toMember.name.uppercase()}",
                             fontSize = 12.sp,
                             color = Color(0xFF475569)
                         )
@@ -302,7 +314,7 @@ fun VietQrTransferDialog(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = "NỘI DUNG CHUYỂN KHOẢN CHUẨN ĐỐI SOÁT:",
+                            text = if (lang == AppLanguage.VI) "NỘI DUNG CHUYỂN KHOẢN CHUẨN ĐỐI SOÁT:" else "TRANSFER DESCRIPTION / MEMO:",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF92400E)
@@ -338,20 +350,21 @@ fun VietQrTransferDialog(
                             "So tien: ${transfer.amount}\n" +
                             "Noi dung: ${transfer.transferNote}"
                     clipboardManager.setText(AnnotatedString(copyContent))
-                    copiedText = "Đã sao chép thông tin chuyển khoản!"
+                    copiedText = if (lang == AppLanguage.VI) "Đã sao chép thông tin chuyển khoản!" else "Copied transfer details!"
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
                 modifier = Modifier.testTag("copy_transfer_info_button")
             ) {
                 Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Sao chép thông tin")
+                Text(if (lang == AppLanguage.VI) "Sao chép thông tin" else "Copy Info")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Đóng")
+                Text(if (lang == AppLanguage.VI) "Đóng" else "Close")
             }
         }
     )
 }
+

@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,6 +34,9 @@ import com.example.data.entity.AuditLogEntity
 import com.example.data.entity.ExchangeRateEntity
 import com.example.data.entity.TripMemberEntity
 import com.example.ui.components.RoleBadge
+import com.example.ui.locale.AppLanguage
+import com.example.ui.locale.AppStrings
+import com.example.ui.locale.LocalAppLanguage
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.UiState
 import java.text.SimpleDateFormat
@@ -43,12 +47,17 @@ import java.util.*
 fun MembersAndSettingsScreen(
     uiState: UiState,
     onAddMember: (name: String, role: String, bankName: String?, bankAccount: String?, holder: String?) -> Unit,
+    onEditMember: (member: TripMemberEntity, name: String, role: String, bankName: String?, bankAccount: String?, holder: String?) -> Unit = { _, _, _, _, _, _ -> },
     onUpdateRole: (TripMemberEntity, String) -> Unit,
     onRemoveOrDeactivate: (TripMemberEntity) -> Unit,
-    onUpdateRate: (currencyCode: String, rate: Double) -> Unit
+    onUpdateRate: (currencyCode: String, rate: Double) -> Unit,
+    onSelectLanguage: (AppLanguage) -> Unit = {}
 ) {
+    val lang = LocalAppLanguage.current
     val clipboardManager = LocalClipboardManager.current
     var showAddMemberDialog by remember { mutableStateOf(false) }
+    var memberToEdit by remember { mutableStateOf<TripMemberEntity?>(null) }
+    var memberToDelete by remember { mutableStateOf<TripMemberEntity?>(null) }
     var showRateDialog by remember { mutableStateOf(false) }
     var showAuditLogsDialog by remember { mutableStateOf(false) }
     var copiedCodeNotice by remember { mutableStateOf<String?>(null) }
@@ -66,6 +75,99 @@ fun MembersAndSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(top = 12.dp, bottom = 90.dp)
     ) {
+        // Language Settings Card
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.Translate,
+                            contentDescription = null,
+                            tint = EmeraldPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (lang == AppLanguage.VI) "NGÔN NGỮ HIỂN THỊ (LANGUAGE)" else "DISPLAY LANGUAGE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        val isVi = lang == AppLanguage.VI
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isVi) EmeraldPrimaryContainer else Color(0xFFF8FAFC),
+                            border = BorderStroke(if (isVi) 1.5.dp else 1.dp, if (isVi) EmeraldPrimary else Color(0xFFE2E8F0)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onSelectLanguage(AppLanguage.VI) }
+                                .testTag("language_vi_button")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text("🇻🇳", fontSize = 18.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Tiếng Việt",
+                                    fontWeight = if (isVi) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 13.sp,
+                                    color = if (isVi) EmeraldOnPrimaryContainer else Color(0xFF334155)
+                                )
+                                if (isVi) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(Icons.Filled.Check, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+
+                        val isEn = lang == AppLanguage.EN
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isEn) EmeraldPrimaryContainer else Color(0xFFF8FAFC),
+                            border = BorderStroke(if (isEn) 1.5.dp else 1.dp, if (isEn) EmeraldPrimary else Color(0xFFE2E8F0)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onSelectLanguage(AppLanguage.EN) }
+                                .testTag("language_en_button")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text("🇬🇧", fontSize = 18.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "English",
+                                    fontWeight = if (isEn) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 13.sp,
+                                    color = if (isEn) EmeraldOnPrimaryContainer else Color(0xFF334155)
+                                )
+                                if (isEn) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(Icons.Filled.Check, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Trip Details & 6-Char Join Code
         item {
             Card(
@@ -76,7 +178,7 @@ fun MembersAndSettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "MÃ THAM GIA ĐOÀN (6 KÝ TỰ)",
+                        text = if (lang == AppLanguage.VI) "MÃ THAM GIA ĐOÀN (6 KÝ TỰ)" else "TRIP JOIN CODE (6 CHARACTERS)",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF64748B)
@@ -106,14 +208,14 @@ fun MembersAndSettingsScreen(
                             onClick = {
                                 val code = uiState.currentTrip?.joinCode ?: ""
                                 clipboardManager.setText(AnnotatedString(code))
-                                copiedCodeNotice = "Đã chép mã $code!"
+                                copiedCodeNotice = if (lang == AppLanguage.VI) "Đã chép mã $code!" else "Copied code $code!"
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Sao chép mã")
+                            Text(if (lang == AppLanguage.VI) "Sao chép mã" else "Copy Code")
                         }
                     }
 
@@ -124,7 +226,10 @@ fun MembersAndSettingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "Thành viên mới chỉ cần nhập mã 6 ký tự trên để tham gia đoàn ngay lập tức mà không cần thủ tục phức tạp.",
+                        text = if (lang == AppLanguage.VI) 
+                            "Thành viên mới chỉ cần nhập mã 6 ký tự trên để tham gia đoàn ngay lập tức mà không cần thủ tục phức tạp."
+                        else 
+                            "New members can enter this 6-character code to join the trip instantly without complicated setups.",
                         fontSize = 11.sp,
                         color = Color(0xFF64748B)
                     )
@@ -145,7 +250,7 @@ fun MembersAndSettingsScreen(
                 ) {
                     Icon(Icons.Filled.CurrencyExchange, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Tỷ giá (${uiState.exchangeRates.size})", fontSize = 12.sp)
+                    Text("${if (lang == AppLanguage.VI) "Tỷ giá" else "Exchange Rates"} (${uiState.exchangeRates.size})", fontSize = 12.sp)
                 }
 
                 Button(
@@ -170,7 +275,7 @@ fun MembersAndSettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Danh Sách Thành Viên (${uiState.members.size})",
+                    text = "${if (lang == AppLanguage.VI) "Danh Sách Thành Viên" else "Trip Members"} (${uiState.members.size})",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -181,11 +286,11 @@ fun MembersAndSettingsScreen(
                         onClick = { showAddMemberDialog = true },
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
+                        modifier = Modifier.height(32.dp).testTag("add_member_button")
                     ) {
                         Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Thêm", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.add(lang), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -232,7 +337,11 @@ fun MembersAndSettingsScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 if (!member.isActive) {
-                                    Text("• Đã ngừng hoạt động", fontSize = 10.sp, color = DangerRed)
+                                    Text(
+                                        text = if (lang == AppLanguage.VI) "• Đã ngừng hoạt động" else "• Deactivated",
+                                        fontSize = 10.sp,
+                                        color = DangerRed
+                                    )
                                 }
                             }
                         }
@@ -256,10 +365,10 @@ fun MembersAndSettingsScreen(
                                 onDismissRequest = { expandedRoleMenu = false }
                             ) {
                                 listOf(
-                                    "ADMIN" to "Trưởng đoàn (Admin)",
-                                    "TREASURER" to "Thủ quỹ (Treasurer)",
-                                    "MEMBER" to "Thành viên (Member)",
-                                    "VIEWER" to "Người xem (Viewer)"
+                                    "ADMIN" to if (lang == AppLanguage.VI) "Trưởng đoàn (Admin)" else "Admin",
+                                    "TREASURER" to if (lang == AppLanguage.VI) "Thủ quỹ (Treasurer)" else "Treasurer",
+                                    "MEMBER" to if (lang == AppLanguage.VI) "Thành viên (Member)" else "Member",
+                                    "VIEWER" to if (lang == AppLanguage.VI) "Người xem (Viewer)" else "Viewer"
                                 ).forEach { (rKey, rLabel) ->
                                     DropdownMenuItem(
                                         text = { Text(rLabel) },
@@ -277,44 +386,116 @@ fun MembersAndSettingsScreen(
                     HorizontalDivider(color = Color(0xFFF1F5F9))
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Bank Account details
+                    // Bank Account details & Action buttons (Edit & Delete for Admin)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "STK: ${member.bankAccount ?: "Chưa cập nhật"} (${member.bankName ?: "Chưa có"})",
+                                text = "${if (lang == AppLanguage.VI) "STK" else "Account"}: ${member.bankAccount ?: if (lang == AppLanguage.VI) "Chưa cập nhật" else "Not updated"} (${member.bankName ?: if (lang == AppLanguage.VI) "Chưa có" else "N/A"})",
                                 fontSize = 11.sp,
                                 color = Color(0xFF475569)
                             )
                             if (!member.bankAccountHolder.isNullOrBlank()) {
                                 Text(
-                                    text = "Chủ TK: ${member.bankAccountHolder}",
+                                    text = "${if (lang == AppLanguage.VI) "Chủ TK" else "Holder"}: ${member.bankAccountHolder}",
                                     fontSize = 10.sp,
                                     color = Color(0xFF64748B)
                                 )
                             }
                         }
 
-                        if (canManageMembers && member.id != currentMember?.id) {
-                            TextButton(
-                                onClick = { onRemoveOrDeactivate(member) },
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                modifier = Modifier.height(28.dp)
+                        if (isAdmin) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = if (member.isActive) "Xóa/Khóa" else "Đã khóa",
-                                    fontSize = 11.sp,
-                                    color = DangerRed
-                                )
+                                IconButton(
+                                    onClick = { memberToEdit = member },
+                                    modifier = Modifier.size(28.dp).testTag("edit_member_${member.id}")
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Edit,
+                                        contentDescription = AppStrings.edit(lang),
+                                        tint = IndigoSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+
+                                if (member.id != currentMember?.id) {
+                                    IconButton(
+                                        onClick = { memberToDelete = member },
+                                        modifier = Modifier.size(28.dp).testTag("delete_member_${member.id}")
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.DeleteOutline,
+                                            contentDescription = AppStrings.delete(lang),
+                                            tint = DangerRed,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    // Edit Member Dialog
+    memberToEdit?.let { mem ->
+        EditMemberDialog(
+            member = mem,
+            onDismiss = { memberToEdit = null },
+            onSave = { name, role, bankName, bankAccount, holder ->
+                onEditMember(mem, name, role, bankName, bankAccount, holder)
+                memberToEdit = null
+            }
+        )
+    }
+
+    // Delete Member Confirmation Dialog
+    memberToDelete?.let { mem ->
+        AlertDialog(
+            onDismissRequest = { memberToDelete = null },
+            icon = {
+                Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            },
+            title = {
+                Text(
+                    text = if (lang == AppLanguage.VI) "Xác Nhận Xóa / Vô Hiệu Hóa Thành Viên" else "Confirm Remove / Deactivate Member",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (lang == AppLanguage.VI)
+                        "Bạn có chắc chắn muốn xử lý thành viên '${mem.name}'? Nếu thành viên đã có lịch sử chi tiêu hoặc nộp quỹ, hệ thống sẽ chuyển sang trạng thái Ngừng hoạt động để bảo toàn số liệu tài chính."
+                    else
+                        "Are you sure you want to remove '${mem.name}'? If this member has expense or fund records, their status will be set to Deactivated to preserve financial integrity."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onRemoveOrDeactivate(mem)
+                        memberToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag("confirm_delete_member_button")
+                ) {
+                    Text(AppStrings.confirm(lang))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { memberToDelete = null }) {
+                    Text(AppStrings.cancel(lang))
+                }
+            }
+        )
     }
 
     // Add Member Dialog
@@ -354,6 +535,7 @@ fun AddMemberDialog(
     onDismiss: () -> Unit,
     onSave: (name: String, role: String, bankName: String?, bankAccount: String?, holder: String?) -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     var name by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("MEMBER") }
     var bankName by remember { mutableStateOf("Vietcombank") }
@@ -371,21 +553,35 @@ fun AddMemberDialog(
     AlertDialog(
         onDismissRequest = safeDismiss,
         properties = DialogProperties(decorFitsSystemWindows = true),
-        title = { Text("Thêm Thành Viên Vào Đoàn", fontSize = 17.sp, fontWeight = FontWeight.Bold) },
+        title = { 
+            Text(
+                text = if (lang == AppLanguage.VI) "Thêm Thành Viên Vào Đoàn" else "Add Member To Trip",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold
+            ) 
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Họ và tên thành viên *") },
+                    label = { Text(if (lang == AppLanguage.VI) "Họ và tên thành viên *" else "Full Name *") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text("Vai trò:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = if (lang == AppLanguage.VI) "Vai trò:" else "Role:",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("MEMBER" to "Thành viên", "TREASURER" to "Thủ quỹ", "VIEWER" to "Xem").forEach { (rKey, rLabel) ->
+                    listOf(
+                        "MEMBER" to if (lang == AppLanguage.VI) "Thành viên" else "Member",
+                        "TREASURER" to if (lang == AppLanguage.VI) "Thủ quỹ" else "Treasurer",
+                        "VIEWER" to if (lang == AppLanguage.VI) "Xem" else "Viewer"
+                    ).forEach { (rKey, rLabel) ->
                         FilterChip(
                             selected = role == rKey,
                             onClick = { role = rKey },
@@ -397,7 +593,7 @@ fun AddMemberDialog(
                 OutlinedTextField(
                     value = bankName,
                     onValueChange = { bankName = it },
-                    label = { Text("Tên Ngân hàng (VD: MBBank, VCB...)") },
+                    label = { Text(if (lang == AppLanguage.VI) "Tên Ngân hàng (VD: MBBank, VCB...)" else "Bank Name (e.g. MBBank, Chase...)") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth()
@@ -406,7 +602,7 @@ fun AddMemberDialog(
                 OutlinedTextField(
                     value = bankAccount,
                     onValueChange = { bankAccount = it },
-                    label = { Text("Số tài khoản nhận tiền") },
+                    label = { Text(if (lang == AppLanguage.VI) "Số tài khoản nhận tiền" else "Bank Account Number") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -415,7 +611,7 @@ fun AddMemberDialog(
                 OutlinedTextField(
                     value = holder,
                     onValueChange = { holder = it },
-                    label = { Text("Chủ tài khoản (Không dấu)") },
+                    label = { Text(if (lang == AppLanguage.VI) "Chủ tài khoản (Không dấu)" else "Account Holder Name") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
@@ -436,11 +632,11 @@ fun AddMemberDialog(
                 enabled = name.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
             ) {
-                Text("Thêm")
+                Text(AppStrings.add(lang))
             }
         },
         dismissButton = {
-            TextButton(onClick = safeDismiss) { Text("Hủy") }
+            TextButton(onClick = safeDismiss) { Text(AppStrings.cancel(lang)) }
         }
     )
 }
@@ -452,6 +648,7 @@ fun ExchangeRatesDialog(
     onDismiss: () -> Unit,
     onSave: (String, Double) -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     var selectedCode by remember { mutableStateOf("USD") }
     var rateValueText by remember { mutableStateOf("25450") }
 
@@ -470,12 +667,20 @@ fun ExchangeRatesDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.CurrencyExchange, contentDescription = null, tint = EmeraldPrimary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Quản Lý Tỷ Giá Ngoại Tệ", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (lang == AppLanguage.VI) "Quản Lý Tỷ Giá Ngoại Tệ" else "Exchange Rates Management",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Tỷ giá quy đổi cố định theo đoàn (Base: VND):", fontSize = 12.sp, color = Color(0xFF64748B))
+                Text(
+                    text = if (lang == AppLanguage.VI) "Tỷ giá quy đổi cố định theo đoàn (Base: VND):" else "Trip exchange rates against base currency (VND):",
+                    fontSize = 12.sp,
+                    color = Color(0xFF64748B)
+                )
 
                 rates.forEach { r ->
                     Row(
@@ -490,7 +695,11 @@ fun ExchangeRatesDialog(
 
                 if (canEdit) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                    Text("Cập nhật tỷ giá mới:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (lang == AppLanguage.VI) "Cập nhật tỷ giá mới:" else "Update exchange rate:",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("USD", "EUR", "JPY", "THB", "SGD", "CNY").forEach { c ->
@@ -505,7 +714,7 @@ fun ExchangeRatesDialog(
                     OutlinedTextField(
                         value = rateValueText,
                         onValueChange = { rateValueText = it },
-                        label = { Text("Tỷ giá 1 $selectedCode = ? VND") },
+                        label = { Text("1 $selectedCode = ? VND") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = {
                             focusManager.clearFocus()
@@ -530,14 +739,14 @@ fun ExchangeRatesDialog(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
                 ) {
-                    Text("Lưu tỷ giá")
+                    Text(if (lang == AppLanguage.VI) "Lưu tỷ giá" else "Save Rate")
                 }
             } else {
-                TextButton(onClick = safeDismiss) { Text("Đóng") }
+                TextButton(onClick = safeDismiss) { Text(AppStrings.close(lang)) }
             }
         },
         dismissButton = {
-            if (canEdit) TextButton(onClick = safeDismiss) { Text("Đóng") }
+            if (canEdit) TextButton(onClick = safeDismiss) { Text(AppStrings.close(lang)) }
         }
     )
 }
@@ -547,6 +756,7 @@ fun AuditLogsDialog(
     logs: List<AuditLogEntity>,
     onDismiss: () -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
 
     AlertDialog(
@@ -556,12 +766,19 @@ fun AuditLogsDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = IndigoSecondary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Nhật Ký Kiểm Toán (Audit Logs)", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (lang == AppLanguage.VI) "Nhật Ký Kiểm Toán (Audit Logs)" else "Audit Logs",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         },
         text = {
             if (logs.isEmpty()) {
-                Text("Chưa có bản ghi nhật ký nào.", fontSize = 13.sp)
+                Text(
+                    text = if (lang == AppLanguage.VI) "Chưa có bản ghi nhật ký nào." else "No audit log entries found.",
+                    fontSize = 13.sp
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 400.dp),
@@ -582,7 +799,11 @@ fun AuditLogsDialog(
                                     Text(dateFormat.format(Date(log.timestamp)), fontSize = 9.sp, color = Color(0xFF94A3B8))
                                 }
                                 Text(log.description, fontSize = 12.sp, color = Color(0xFF1E293B))
-                                Text("Thực hiện bởi: ${log.actorName}", fontSize = 10.sp, color = Color(0xFF64748B))
+                                Text(
+                                    text = "${if (lang == AppLanguage.VI) "Thực hiện bởi" else "By"}: ${log.actorName}",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF64748B)
+                                )
                             }
                         }
                     }
@@ -590,7 +811,125 @@ fun AuditLogsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Đóng") }
+            TextButton(onClick = onDismiss) { Text(AppStrings.close(lang)) }
+        }
+    )
+}
+
+@Composable
+fun EditMemberDialog(
+    member: TripMemberEntity,
+    onDismiss: () -> Unit,
+    onSave: (name: String, role: String, bankName: String?, bankAccount: String?, holder: String?) -> Unit
+) {
+    val lang = LocalAppLanguage.current
+    var name by remember { mutableStateOf(member.name) }
+    var role by remember { mutableStateOf(member.role) }
+    var bankName by remember { mutableStateOf(member.bankName ?: "Vietcombank") }
+    var bankAccount by remember { mutableStateOf(member.bankAccount ?: "") }
+    var holder by remember { mutableStateOf(member.bankAccountHolder ?: member.name) }
+
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val safeDismiss = {
+        focusManager.clearFocus()
+        keyboardController?.hide()
+        onDismiss()
+    }
+
+    AlertDialog(
+        onDismissRequest = safeDismiss,
+        properties = DialogProperties(decorFitsSystemWindows = true),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Edit, contentDescription = null, tint = IndigoSecondary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (lang == AppLanguage.VI) "Chỉnh Sửa Thông Tin Thành Viên" else "Edit Member Info",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(if (lang == AppLanguage.VI) "Họ và tên thành viên *" else "Full Name *") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth().testTag("edit_member_name_input")
+                )
+
+                Text(
+                    text = if (lang == AppLanguage.VI) "Vai trò:" else "Role:",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(
+                        "ADMIN" to if (lang == AppLanguage.VI) "Trưởng đoàn" else "Admin",
+                        "TREASURER" to if (lang == AppLanguage.VI) "Thủ quỹ" else "Treasurer",
+                        "MEMBER" to if (lang == AppLanguage.VI) "Thành viên" else "Member",
+                        "VIEWER" to if (lang == AppLanguage.VI) "Xem" else "Viewer"
+                    ).forEach { (rKey, rLabel) ->
+                        FilterChip(
+                            selected = role == rKey,
+                            onClick = { role = rKey },
+                            label = { Text(rLabel, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = bankName,
+                    onValueChange = { bankName = it },
+                    label = { Text(if (lang == AppLanguage.VI) "Tên Ngân hàng" else "Bank Name") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = bankAccount,
+                    onValueChange = { bankAccount = it },
+                    label = { Text(if (lang == AppLanguage.VI) "Số tài khoản nhận tiền" else "Account Number") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = holder,
+                    onValueChange = { holder = it },
+                    label = { Text(if (lang == AppLanguage.VI) "Chủ tài khoản (Không dấu)" else "Account Holder") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                    }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                    onSave(name, role, bankName.takeIf { it.isNotBlank() }, bankAccount.takeIf { it.isNotBlank() }, holder.takeIf { it.isNotBlank() })
+                },
+                enabled = name.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+                modifier = Modifier.testTag("save_edit_member_button")
+            ) {
+                Text(AppStrings.save(lang))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = safeDismiss) { Text(AppStrings.cancel(lang)) }
         }
     )
 }

@@ -247,3 +247,117 @@ fun JoinTripDialog(
         }
     )
 }
+
+@Composable
+fun EditTripDialog(
+    trip: com.example.data.entity.TripEntity,
+    onDismiss: () -> Unit,
+    onConfirm: (title: String, description: String, startDate: Long, endDate: Long) -> Unit
+) {
+    var title by remember { mutableStateOf(trip.title) }
+    var description by remember { mutableStateOf(trip.description) }
+
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val safeDismiss = {
+        focusManager.clearFocus()
+        keyboardController?.hide()
+        onDismiss()
+    }
+
+    val isValid = title.isNotBlank()
+
+    AlertDialog(
+        onDismissRequest = safeDismiss,
+        properties = DialogProperties(decorFitsSystemWindows = true),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Add, contentDescription = null, tint = EmeraldPrimary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Chỉnh Sửa Thông Tin Đoàn", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Tên đoàn *") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth().testTag("edit_trip_title_input")
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Mô tả / Mục đích") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                    }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Mã đoàn: ${trip.joinCode} (Cố định)",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                    onConfirm(title, description, trip.startDate, trip.endDate)
+                },
+                enabled = isValid,
+                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+                modifier = Modifier.testTag("submit_edit_trip_button")
+            ) {
+                Text("Lưu thay đổi")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = safeDismiss) { Text("Hủy") }
+        }
+    )
+}
+
+@Composable
+fun DeleteTripDialog(
+    tripTitle: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+        },
+        title = {
+            Text("Xác Nhận Xóa Đoàn", fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Text("Bạn có chắc chắn muốn xóa đoàn '$tripTitle'? Toàn bộ chi tiêu, nộp quỹ, thành viên và báo cáo thuộc đoàn này sẽ bị xóa hoàn toàn khỏi thiết bị.")
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.testTag("confirm_delete_trip_button")
+            ) {
+                Text("Xóa vĩnh viễn")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy")
+            }
+        }
+    )
+}

@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,16 +24,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.components.OfflineStatusBanner
+import com.example.ui.locale.AppLanguage
+import com.example.ui.locale.AppStrings
+import com.example.ui.locale.LocalAppLanguage
 import com.example.ui.screens.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.TripFinanceViewModel
 
-enum class NavigationTab(val title: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
-    DASHBOARD("Tổng quan", Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
-    EXPENSES("Chi tiêu", Icons.Filled.ReceiptLong, Icons.Outlined.ReceiptLong),
-    FUND("Quỹ đoàn", Icons.Filled.Savings, Icons.Outlined.Savings),
-    SETTLEMENT("Quyết toán", Icons.Filled.Payments, Icons.Outlined.Payments),
-    MEMBERS("Thành viên", Icons.Filled.Group, Icons.Outlined.Group)
+enum class NavigationTab(val tabKey: String, val defaultTitle: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
+    DASHBOARD("DASHBOARD", "Tổng quan", Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
+    EXPENSES("EXPENSES", "Chi tiêu", Icons.Filled.ReceiptLong, Icons.Outlined.ReceiptLong),
+    FUND("FUND", "Quỹ đoàn", Icons.Filled.Savings, Icons.Outlined.Savings),
+    SETTLEMENT("SETTLEMENT", "Quyết toán", Icons.Filled.Payments, Icons.Outlined.Payments),
+    MEMBERS("SETTINGS", "Thành viên", Icons.Filled.Group, Icons.Outlined.Group)
 }
 
 class MainActivity : ComponentActivity() {
@@ -54,6 +58,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TripFinanceApp(viewModel: TripFinanceViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lang = uiState.language
     var currentTab by remember { mutableStateOf(NavigationTab.DASHBOARD) }
 
     // Dialog state controllers
@@ -86,211 +91,253 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Shield,
-                            contentDescription = null,
-                            tint = EmeraldPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "TripFinance",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 19.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                actions = {
-                    // Export Report Button in TopAppBar
-                    IconButton(
-                        onClick = { showExportReportDialog = true },
-                        modifier = Modifier.testTag("export_report_top_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Description,
-                            contentDescription = "Xuất Báo Cáo",
-                            tint = IndigoSecondary
-                        )
-                    }
-
-                    // Quick trip selector dropdown if user has multiple trips
-                    var tripMenuExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(
-                            onClick = { tripMenuExpanded = true },
-                            modifier = Modifier.testTag("switch_trip_top_button")
-                        ) {
+    CompositionLocalProvider(LocalAppLanguage provides lang) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Filled.SwapHoriz,
-                                contentDescription = "Chuyển đoàn",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                imageVector = Icons.Filled.Shield,
+                                contentDescription = null,
+                                tint = EmeraldPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "TripFinance",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 19.sp,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-
-                        DropdownMenu(
-                            expanded = tripMenuExpanded,
-                            onDismissRequest = { tripMenuExpanded = false }
+                    },
+                    actions = {
+                        // Language Switcher Button in TopAppBar
+                        Surface(
+                            onClick = { viewModel.toggleLanguage() },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (lang == AppLanguage.VI) EmeraldPrimaryContainer else Color(0xFFEDE9FE),
+                            border = BorderStroke(1.dp, if (lang == AppLanguage.VI) EmeraldPrimary else Color(0xFF7C3AED)),
+                            modifier = Modifier
+                                .height(30.dp)
+                                .testTag("toggle_language_top_button")
                         ) {
-                            Text(
-                                text = "Chọn chuyến đi / đoàn:",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF64748B),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                            uiState.allTrips.forEach { trip ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = trip.title,
-                                            fontWeight = if (trip.id == uiState.currentTrip?.id) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    },
-                                    onClick = {
-                                        viewModel.selectTrip(trip.id)
-                                        tripMenuExpanded = false
-                                    },
-                                    leadingIcon = {
-                                        if (trip.id == uiState.currentTrip?.id) {
-                                            Icon(Icons.Filled.Check, contentDescription = null, tint = EmeraldPrimary)
-                                        }
-                                    }
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (lang == AppLanguage.VI) "🇻🇳 VI" else "🇬🇧 EN",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (lang == AppLanguage.VI) EmeraldOnPrimaryContainer else Color(0xFF5B21B6)
                                 )
                             }
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Tạo đoàn mới...") },
-                                onClick = {
-                                    showCreateTripDialog = true
-                                    tripMenuExpanded = false
-                                },
-                                leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Nhập mã tham gia đoàn...") },
-                                onClick = {
-                                    showJoinTripDialog = true
-                                    tripMenuExpanded = false
-                                },
-                                leadingIcon = { Icon(Icons.Filled.GroupAdd, contentDescription = null) }
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Export Report Button in TopAppBar
+                        IconButton(
+                            onClick = { showExportReportDialog = true },
+                            modifier = Modifier.testTag("export_report_top_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Description,
+                                contentDescription = AppStrings.exportReport(lang),
+                                tint = IndigoSecondary
                             )
                         }
-                    }
 
-                    // Toggle Offline Simulator Button
-                    IconButton(
-                        onClick = { viewModel.toggleOfflineMode() },
-                        modifier = Modifier.testTag("toggle_offline_button")
-                    ) {
-                        Icon(
-                            imageVector = if (uiState.isOfflineMode) Icons.Filled.WifiOff else Icons.Filled.Wifi,
-                            contentDescription = "Chế độ Offline",
-                            tint = if (uiState.isOfflineMode) AmberTertiary else EmeraldPrimary
+                        // Quick trip selector dropdown if user has multiple trips
+                        var tripMenuExpanded by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(
+                                onClick = { tripMenuExpanded = true },
+                                modifier = Modifier.testTag("switch_trip_top_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.SwapHoriz,
+                                    contentDescription = AppStrings.selectTrip(lang),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = tripMenuExpanded,
+                                onDismissRequest = { tripMenuExpanded = false }
+                            ) {
+                                Text(
+                                    text = AppStrings.selectTrip(lang),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF64748B),
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                                uiState.allTrips.forEach { trip ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = trip.title,
+                                                fontWeight = if (trip.id == uiState.currentTrip?.id) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.selectTrip(trip.id)
+                                            tripMenuExpanded = false
+                                        },
+                                        leadingIcon = {
+                                            if (trip.id == uiState.currentTrip?.id) {
+                                                Icon(Icons.Filled.Check, contentDescription = null, tint = EmeraldPrimary)
+                                            }
+                                        }
+                                    )
+                                }
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text(AppStrings.createNewTrip(lang)) },
+                                    onClick = {
+                                        showCreateTripDialog = true
+                                        tripMenuExpanded = false
+                                    },
+                                    leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(AppStrings.joinTripByCode(lang)) },
+                                    onClick = {
+                                        showJoinTripDialog = true
+                                        tripMenuExpanded = false
+                                    },
+                                    leadingIcon = { Icon(Icons.Filled.GroupAdd, contentDescription = null) }
+                                )
+                            }
+                        }
+
+                        // Toggle Offline Simulator Button
+                        IconButton(
+                            onClick = { viewModel.toggleOfflineMode() },
+                            modifier = Modifier.testTag("toggle_offline_button")
+                        ) {
+                            Icon(
+                                imageVector = if (uiState.isOfflineMode) Icons.Filled.WifiOff else Icons.Filled.Wifi,
+                                contentDescription = AppStrings.offlineMode(lang),
+                                tint = if (uiState.isOfflineMode) AmberTertiary else EmeraldPrimary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            },
+            bottomBar = {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
+                ) {
+                    NavigationTab.values().forEach { tab ->
+                        val isSelected = currentTab == tab
+                        val tabTitle = AppStrings.getTabName(tab.name, lang)
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = { currentTab = tab },
+                            icon = {
+                                Icon(
+                                    imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                    contentDescription = tabTitle
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = tabTitle,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = EmeraldPrimary,
+                                selectedTextColor = EmeraldPrimary,
+                                indicatorColor = EmeraldPrimaryContainer
+                            )
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
+                }
+            },
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
-                NavigationTab.values().forEach { tab ->
-                    val isSelected = currentTab == tab
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = { currentTab = tab },
-                        icon = {
-                            Icon(
-                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                contentDescription = tab.title
-                            )
+                // Offline Banner
+                OfflineStatusBanner(
+                    isOffline = uiState.isOfflineMode,
+                    pendingCount = uiState.pendingSyncCount,
+                    onToggleOffline = { viewModel.toggleOfflineMode() }
+                )
+
+                // Content per selected tab
+                when (currentTab) {
+                    NavigationTab.DASHBOARD -> DashboardScreen(
+                        uiState = uiState,
+                        onNavigateToExpenses = { currentTab = NavigationTab.EXPENSES },
+                        onNavigateToFund = { currentTab = NavigationTab.FUND },
+                        onNavigateToSettlement = { currentTab = NavigationTab.SETTLEMENT },
+                        onOpenAddExpense = { showAddExpenseDialog = true },
+                        onOpenAddFund = { showAddFundDialog = true },
+                        onOpenExportReport = { showExportReportDialog = true },
+                        onOpenCreateTrip = { showCreateTripDialog = true },
+                        onOpenJoinTrip = { showJoinTripDialog = true },
+                        onSwitchUser = { memberId -> viewModel.switchUserPersona(memberId) },
+                        onSelectTrip = { tripId -> viewModel.selectTrip(tripId) },
+                        onEditTrip = { trip, title, desc, start, end ->
+                            viewModel.editTrip(trip.id, title, desc, start, end)
                         },
-                        label = {
-                            Text(
-                                text = tab.title,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
+                        onDeleteTrip = { trip -> viewModel.deleteTrip(trip.id) }
+                    )
+                    NavigationTab.EXPENSES -> ExpensesScreen(
+                        uiState = uiState,
+                        onOpenAddExpense = { showAddExpenseDialog = true },
+                        onEditExpense = { expId, title, cat, payerType, payerId, amount, curr, rate, splitType, splits, note, time ->
+                            viewModel.editExpense(expId, title, cat, payerType, payerId, amount, curr, rate, splitType, splits, note, time)
                         },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = EmeraldPrimary,
-                            selectedTextColor = EmeraldPrimary,
-                            indicatorColor = EmeraldPrimaryContainer
-                        )
+                        onDeleteExpense = { exp -> viewModel.deleteExpense(exp) },
+                        onCategoryFilterChange = { cat -> viewModel.setCategoryFilter(cat) },
+                        onSearchChange = { q -> viewModel.setSearchQuery(q) }
+                    )
+                    NavigationTab.FUND -> FundScreen(
+                        uiState = uiState,
+                        onOpenAddFund = { showAddFundDialog = true }
+                    )
+                    NavigationTab.SETTLEMENT -> SettlementScreen(
+                        uiState = uiState,
+                        onFinalizeSettlement = { title -> viewModel.finalizeSettlement(title) },
+                        onOpenExportReport = { showExportReportDialog = true }
+                    )
+                    NavigationTab.MEMBERS -> MembersAndSettingsScreen(
+                        uiState = uiState,
+                        onAddMember = { name, role, bank, acc, holder ->
+                            viewModel.addMember(name, role, bank, acc, holder)
+                        },
+                        onEditMember = { member, name, role, bank, acc, holder ->
+                            viewModel.editMember(member, name, role, bank, acc, holder)
+                        },
+                        onUpdateRole = { member, newRole ->
+                            viewModel.updateMemberRole(member, newRole)
+                        },
+                        onRemoveOrDeactivate = { member ->
+                            viewModel.removeOrDeactivateMember(member)
+                        },
+                        onUpdateRate = { code, rate ->
+                            viewModel.updateExchangeRate(code, rate)
+                        },
+                        onSelectLanguage = { newLang ->
+                            viewModel.setLanguage(newLang)
+                        }
                     )
                 }
-            }
-        },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Offline Banner
-            OfflineStatusBanner(
-                isOffline = uiState.isOfflineMode,
-                pendingCount = uiState.pendingSyncCount,
-                onToggleOffline = { viewModel.toggleOfflineMode() }
-            )
-
-            // Content per selected tab
-            when (currentTab) {
-                NavigationTab.DASHBOARD -> DashboardScreen(
-                    uiState = uiState,
-                    onNavigateToExpenses = { currentTab = NavigationTab.EXPENSES },
-                    onNavigateToFund = { currentTab = NavigationTab.FUND },
-                    onNavigateToSettlement = { currentTab = NavigationTab.SETTLEMENT },
-                    onOpenAddExpense = { showAddExpenseDialog = true },
-                    onOpenAddFund = { showAddFundDialog = true },
-                    onOpenExportReport = { showExportReportDialog = true },
-                    onOpenCreateTrip = { showCreateTripDialog = true },
-                    onOpenJoinTrip = { showJoinTripDialog = true },
-                    onSwitchUser = { memberId -> viewModel.switchUserPersona(memberId) }
-                )
-                NavigationTab.EXPENSES -> ExpensesScreen(
-                    uiState = uiState,
-                    onOpenAddExpense = { showAddExpenseDialog = true },
-                    onDeleteExpense = { exp -> viewModel.deleteExpense(exp) },
-                    onCategoryFilterChange = { cat -> viewModel.setCategoryFilter(cat) },
-                    onSearchChange = { q -> viewModel.setSearchQuery(q) }
-                )
-                NavigationTab.FUND -> FundScreen(
-                    uiState = uiState,
-                    onOpenAddFund = { showAddFundDialog = true }
-                )
-                NavigationTab.SETTLEMENT -> SettlementScreen(
-                    uiState = uiState,
-                    onFinalizeSettlement = { title -> viewModel.finalizeSettlement(title) },
-                    onOpenExportReport = { showExportReportDialog = true }
-                )
-                NavigationTab.MEMBERS -> MembersAndSettingsScreen(
-                    uiState = uiState,
-                    onAddMember = { name, role, bank, acc, holder ->
-                        viewModel.addMember(name, role, bank, acc, holder)
-                    },
-                    onUpdateRole = { member, newRole ->
-                        viewModel.updateMemberRole(member, newRole)
-                    },
-                    onRemoveOrDeactivate = { member ->
-                        viewModel.removeOrDeactivateMember(member)
-                    },
-                    onUpdateRate = { code, rate ->
-                        viewModel.updateExchangeRate(code, rate)
-                    }
-                )
             }
         }
     }
@@ -348,3 +395,4 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
         )
     }
 }
+

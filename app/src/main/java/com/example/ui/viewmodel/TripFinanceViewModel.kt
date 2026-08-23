@@ -9,9 +9,11 @@ import com.example.data.repository.TripFinanceRepository
 import com.example.domain.engine.SettlementEngine
 import com.example.domain.engine.SplitCalculator
 import com.example.domain.model.*
+import com.example.ui.locale.AppLanguage
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
+import android.content.Context
 
 data class UiState(
     val currentTrip: TripEntity? = null,
@@ -23,6 +25,7 @@ data class UiState(
     val settlementTransfers: List<SettlementTransfer> = emptyList(),
     val categoryBreakdowns: List<CategoryBreakdown> = emptyList(),
     val expenses: List<ExpenseEntity> = emptyList(),
+    val allSplits: List<ExpenseSplitEntity> = emptyList(),
     val fundContributions: List<FundContributionEntity> = emptyList(),
     val exchangeRates: List<ExchangeRateEntity> = emptyList(),
     val auditLogs: List<AuditLogEntity> = emptyList(),
@@ -32,12 +35,14 @@ data class UiState(
     val selectedCategoryFilter: String? = null,
     val searchQuery: String = "",
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val language: AppLanguage = AppLanguage.VI
 )
 
 class TripFinanceViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: TripFinanceRepository
+    private val sharedPrefs = application.getSharedPreferences("trip_finance_prefs", Context.MODE_PRIVATE)
 
     private val _currentTripId = MutableStateFlow<String?>("trip_danang_2026")
     private val _currentMemberId = MutableStateFlow<String?>("member_1")
@@ -47,6 +52,9 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
     private val _searchQuery = MutableStateFlow("")
     private val _errorMessage = MutableStateFlow<String?>(null)
     private val _successMessage = MutableStateFlow<String?>(null)
+    private val _language = MutableStateFlow(
+        if (sharedPrefs.getString("app_language", "vi") == "en") AppLanguage.EN else AppLanguage.VI
+    )
 
     val uiState: StateFlow<UiState>
 
@@ -55,12 +63,14 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
         val query: String,
         val isOffline: Boolean,
         val pendingCount: Int,
-        val currentMemberId: String?
+        val currentMemberId: String?,
+        val language: AppLanguage
     )
 
     private data class TripCoreData(
         val members: List<TripMemberEntity>,
         val expenses: List<ExpenseEntity>,
+        val splits: List<ExpenseSplitEntity>,
         val funds: List<FundContributionEntity>,
         val rates: List<ExchangeRateEntity>
     )
@@ -80,9 +90,9 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
             _searchQuery,
             _isOfflineMode,
             _pendingSyncCount,
-            _currentMemberId
-        ) { cat, q, off, pending, mId ->
-            FilterState(cat, q, off, pending, mId)
+            combine(_currentMemberId, _language) { mId, lang -> mId to lang }
+        ) { cat, q, off, pending, (mId, lang) ->
+            FilterState(cat, q, off, pending, mId, lang)
         }
 
         uiState = combine(
@@ -105,7 +115,8 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                         isOfflineMode = filters.isOffline,
                         pendingSyncCount = filters.pendingCount,
                         errorMessage = errorMsg,
-                        successMessage = successMsg
+                        successMessage = successMsg,
+                        language = filters.language
                     )
                 )
             } else {
@@ -114,10 +125,11 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                 val coreFlow = combine(
                     repository.getMembers(tripId),
                     repository.getExpenses(tripId),
+                    repository.getSplitsForTrip(tripId),
                     repository.getFundContributions(tripId),
                     repository.getExchangeRates(tripId)
-                ) { members, expenses, funds, rates ->
-                    TripCoreData(members, expenses, funds, rates)
+                ) { members, expenses, splits, funds, rates ->
+                    TripCoreData(members, expenses, splits, funds, rates)
                 }
 
                 val auxFlow = combine(
@@ -134,7 +146,7 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                         ?: core.members.firstOrNull()
 
                     val totalSpent = summary.totalExpenses.coerceAtLeast(1L)
-                    val catMap = mapOf(
+                    val catMapVi = mapOf(
                         "FOOD" to "Ăn uống",
                         "TRANSPORT" to "Di chuyển",
                         "HOTEL" to "Lưu trú/Khách sạn",
@@ -143,12 +155,26 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                         "SHOPPING" to "Mua sắm",
                         "OTHER" to "Chi phí khác"
                     )
+                    val catMapEn = mapOf(
+                        "FOOD" to "Food & Dining",
+                        "TRANSPORT" to "Transportation",
+                        "HOTEL" to "Accommodation",
+                        "SIGHTSEEING" to "Sightseeing & Tours",
+                        "ENTERTAINMENT" to "Entertainment",
+                        "SHOPPING" to "Shopping",
+                        "OTHER" to "Other Expenses"
+                    )
 
                     val breakdowns = core.expenses.groupBy { it.category }.map { (cat, list) ->
                         val amount = list.sumOf { it.convertedTotalAmount }
+                        val label = if (filters.language == AppLanguage.VI) {
+                            catMapVi[cat] ?: cat
+                        } else {
+                            catMapEn[cat] ?: cat
+                        }
                         CategoryBreakdown(
                             category = cat,
-                            labelVi = catMap[cat] ?: cat,
+                            labelVi = label,
                             iconName = cat,
                             totalAmount = amount,
                             percentage = (amount.toDouble() / totalSpent.toDouble()) * 100.0,
@@ -179,6 +205,7 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                         settlementTransfers = transfers,
                         categoryBreakdowns = breakdowns,
                         expenses = filteredExpenses,
+                        allSplits = core.splits,
                         fundContributions = core.funds,
                         exchangeRates = core.rates,
                         auditLogs = aux.logs,
@@ -188,7 +215,8 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                         selectedCategoryFilter = filters.categoryFilter,
                         searchQuery = filters.query,
                         errorMessage = errorMsg,
-                        successMessage = successMsg
+                        successMessage = successMsg,
+                        language = filters.language
                     )
                 }
             }
@@ -197,6 +225,16 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = UiState()
         )
+    }
+
+    fun setLanguage(lang: AppLanguage) {
+        _language.value = lang
+        sharedPrefs.edit().putString("app_language", lang.code).apply()
+    }
+
+    fun toggleLanguage() {
+        val next = if (_language.value == AppLanguage.VI) AppLanguage.EN else AppLanguage.VI
+        setLanguage(next)
     }
 
     fun selectTrip(tripId: String) {
@@ -288,6 +326,59 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun editTrip(
+        tripId: String,
+        title: String,
+        description: String,
+        startDate: Long,
+        endDate: Long
+    ) {
+        val currentMember = uiState.value.currentMember ?: return
+        if (currentMember.role != "ADMIN") {
+            showError("Chỉ Trưởng đoàn (Admin) mới có quyền chỉnh sửa thông tin đoàn!")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                repository.updateTripDetails(
+                    tripId = tripId,
+                    title = title,
+                    description = description,
+                    startDate = startDate,
+                    endDate = endDate,
+                    actor = currentMember
+                )
+                showSuccess("Đã cập nhật thông tin đoàn '$title' thành công!")
+            } catch (e: Exception) {
+                showError("Lỗi cập nhật đoàn: ${e.message}")
+            }
+        }
+    }
+
+    fun deleteTrip(tripId: String) {
+        val currentMember = uiState.value.currentMember ?: return
+        if (currentMember.role != "ADMIN") {
+            showError("Chỉ Trưởng đoàn (Admin) mới có quyền xóa đoàn!")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val trips = uiState.value.allTrips
+                repository.deleteTripCascade(tripId)
+                // If deleting current active trip, switch to another
+                if (_currentTripId.value == tripId) {
+                    val remaining = trips.filter { it.id != tripId }
+                    _currentTripId.value = remaining.firstOrNull()?.id
+                }
+                showSuccess("Đã xóa đoàn thành công!")
+            } catch (e: Exception) {
+                showError("Lỗi khi xóa đoàn: ${e.message}")
+            }
+        }
+    }
+
     // Expense operations
     fun addExpense(
         title: String,
@@ -356,11 +447,80 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun editExpense(
+        expenseId: String,
+        title: String,
+        category: String,
+        payerType: String,
+        payerMemberId: String?,
+        totalAmount: Long,
+        currency: String,
+        exchangeRate: Double,
+        splitType: String,
+        splits: List<Pair<String, Long>>,
+        note: String,
+        timestamp: Long
+    ) {
+        val currentTrip = uiState.value.currentTrip ?: return
+        val currentMember = uiState.value.currentMember ?: return
+
+        // Strict RBAC: Only Admin can edit expenses
+        if (currentMember.role != "ADMIN") {
+            showError("Chỉ Trưởng đoàn (Admin) mới có quyền chỉnh sửa các khoản chi!")
+            return
+        }
+
+        val convertedTotal = (totalAmount.toDouble() * exchangeRate).toLong()
+        val totalSplitSum = splits.sumOf { it.second }
+        if (totalSplitSum != convertedTotal) {
+            showError("Tổng tiền phân bổ ($totalSplitSum VND) không bằng tổng khoản chi ($convertedTotal VND). Vui lòng kiểm tra lại!")
+            return
+        }
+
+        val updatedExpense = ExpenseEntity(
+            id = expenseId,
+            tripId = currentTrip.id,
+            title = title,
+            category = category,
+            payerType = payerType,
+            payerMemberId = if (payerType == "MEMBER") payerMemberId else null,
+            totalAmount = totalAmount,
+            currency = currency,
+            exchangeRate = exchangeRate,
+            convertedTotalAmount = convertedTotal,
+            splitType = splitType,
+            note = note,
+            timestamp = timestamp,
+            createdMemberId = currentMember.id,
+            isSynced = !_isOfflineMode.value
+        )
+
+        val splitEntities = splits.map { (memberId, amount) ->
+            ExpenseSplitEntity(
+                id = UUID.randomUUID().toString(),
+                expenseId = expenseId,
+                tripId = currentTrip.id,
+                memberId = memberId,
+                amount = amount
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                repository.updateExpenseWithSplits(updatedExpense, splitEntities, currentMember)
+                showSuccess("Đã cập nhật khoản chi '$title' thành công!")
+            } catch (e: Exception) {
+                showError("Lỗi cập nhật chi tiêu: ${e.message}")
+            }
+        }
+    }
+
     fun deleteExpense(expense: ExpenseEntity) {
         val currentMember = uiState.value.currentMember ?: return
 
-        if (currentMember.role != "ADMIN" && currentMember.role != "TREASURER" && expense.createdMemberId != currentMember.id) {
-            showError("Bạn chỉ được phép xóa khoản chi do chính bạn tạo ra!")
+        // Strict RBAC: Only Admin can delete expenses
+        if (currentMember.role != "ADMIN") {
+            showError("Chỉ Trưởng đoàn (Admin) mới có quyền xóa các khoản chi!")
             return
         }
 
@@ -450,6 +610,37 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun editMember(
+        member: TripMemberEntity,
+        newName: String,
+        newRole: String,
+        newBankName: String?,
+        newBankAccount: String?,
+        newBankAccountHolder: String?
+    ) {
+        val currentMember = uiState.value.currentMember ?: return
+        if (currentMember.role != "ADMIN") {
+            showError("Chỉ Trưởng đoàn (Admin) mới có quyền chỉnh sửa thông tin thành viên!")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val updated = member.copy(
+                    name = newName,
+                    role = newRole,
+                    bankName = newBankName,
+                    bankAccount = newBankAccount,
+                    bankAccountHolder = newBankAccountHolder
+                )
+                repository.updateMember(updated, currentMember)
+                showSuccess("Đã cập nhật thông tin thành viên '$newName' thành công!")
+            } catch (e: Exception) {
+                showError("Lỗi cập nhật thành viên: ${e.message}")
+            }
+        }
+    }
+
     fun updateMemberRole(member: TripMemberEntity, newRole: String) {
         val currentMember = uiState.value.currentMember ?: return
         if (currentMember.role != "ADMIN") {
@@ -469,8 +660,8 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
 
     fun removeOrDeactivateMember(member: TripMemberEntity) {
         val currentMember = uiState.value.currentMember ?: return
-        if (currentMember.role != "ADMIN" && currentMember.role != "TREASURER") {
-            showError("Bạn không có quyền quản lý thành viên!")
+        if (currentMember.role != "ADMIN") {
+            showError("Chỉ Trưởng đoàn (Admin) mới có quyền xóa/ngừng hoạt động thành viên!")
             return
         }
 
