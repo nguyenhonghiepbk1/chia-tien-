@@ -80,7 +80,7 @@ fun SettlementScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Filled.AccountTree, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Quyết Toán Tối Ưu (Greedy Engine)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Quyết Toán Tối Ưu", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
 
                         Surface(
@@ -88,9 +88,8 @@ fun SettlementScreen(
                             color = Color(0x33FFFFFF)
                         ) {
                             Text(
-                                text = "${uiState.settlementTransfers.size} giao dịch",
+                                text = "${uiState.settlementTransfers.size}",
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
                                 color = Color.White,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -99,7 +98,7 @@ fun SettlementScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Thuật toán tham lam tối ưu hóa dòng tiền, giảm thiểu tối đa số vòng chuyển khoản qua lại giữa các thành viên đoàn.",
+                        text = "tối ưu hóa chuyển khoản giữa các thành viên đoàn.",
                         fontSize = 11.sp,
                         color = Color(0xEEFFFFFF)
                     )
