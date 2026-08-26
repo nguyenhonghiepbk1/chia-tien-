@@ -2,8 +2,10 @@ package com.example.ui.screens
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.example.domain.export.ReportGenerator
 import com.example.domain.export.ReportType
+import com.example.ui.locale.AppLanguage
+import com.example.ui.locale.LocalAppLanguage
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.IndigoSecondary
 import com.example.ui.theme.AppFontFamily
@@ -41,9 +45,11 @@ fun ExportReportDialog(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val lang = LocalAppLanguage.current
     var selectedReportType by remember { mutableStateOf(ReportType.FULL_SETTLEMENT) }
     var exportFormat by remember { mutableStateOf("TEXT") } // TEXT or CSV
     var copiedNotice by remember { mutableStateOf<String?>(null) }
+    var reportTypeDropdownExpanded by remember { mutableStateOf(false) }
 
     val reportText = remember(selectedReportType, exportFormat, uiState) {
         if (exportFormat == "CSV") {
@@ -68,7 +74,7 @@ fun ExportReportDialog(
                 fundContributions = uiState.fundContributions,
                 splits = uiState.allSplits,
                 reportType = selectedReportType,
-                creatorName = uiState.currentMember?.name ?: "Thành viên"
+                creatorName = uiState.currentMember?.name ?: if (lang == AppLanguage.VI) "Thành viên" else "Member"
             )
         }
     }
@@ -94,7 +100,7 @@ fun ExportReportDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Xuất Báo Cáo Tài Chính",
+                        text = if (lang == AppLanguage.VI) "Xuất Báo Cáo Tài Chính" else "Export Financial Report",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = AppFontFamily
@@ -107,7 +113,7 @@ fun ExportReportDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Format Selector
+                // Format Selector Chips
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -117,7 +123,7 @@ fun ExportReportDialog(
                         onClick = { exportFormat = "TEXT" },
                         label = {
                             Text(
-                                "Văn bản báo cáo",
+                                if (lang == AppLanguage.VI) "Văn bản báo cáo" else "Text Report",
                                 fontSize = 11.sp,
                                 fontFamily = AppFontFamily,
                                 fontWeight = FontWeight.SemiBold
@@ -133,7 +139,7 @@ fun ExportReportDialog(
                         onClick = { exportFormat = "CSV" },
                         label = {
                             Text(
-                                "Excel / CSV (UTF-8)",
+                                if (lang == AppLanguage.VI) "Excel / CSV (UTF-8)" else "Excel / CSV",
                                 fontSize = 11.sp,
                                 fontFamily = AppFontFamily,
                                 fontWeight = FontWeight.SemiBold
@@ -146,47 +152,103 @@ fun ExportReportDialog(
                     )
                 }
 
-                // If in TEXT mode, select report sub-type
+                // If in TEXT mode, compact dropdown selector for report type
                 if (exportFormat == "TEXT") {
-                    Text(
-                        text = "Loại báo cáo tiếng Việt:",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = AppFontFamily
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        ReportType.values().forEach { rType ->
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (selectedReportType == rType) Color(0xFFE0E7FF) else Color(0xFFF8FAFC),
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { selectedReportType = rType }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFF1F5F9),
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { reportTypeDropdownExpanded = true }
+                                .testTag("report_type_dropdown_trigger")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = selectedReportType == rType,
-                                        onClick = { selectedReportType = rType }
+                                Icon(
+                                    Icons.Filled.Assessment,
+                                    contentDescription = null,
+                                    tint = IndigoSecondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = selectedReportType.title,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = AppFontFamily,
+                                        color = Color(0xFF1E293B)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Column {
-                                        Text(
-                                            text = rType.title,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            fontFamily = AppFontFamily,
-                                            color = if (selectedReportType == rType) Color(0xFF312E81) else Color(0xFF1E293B)
-                                        )
-                                        Text(
-                                            text = rType.description,
-                                            fontSize = 10.sp,
-                                            fontFamily = AppFontFamily,
-                                            color = Color(0xFF64748B)
-                                        )
-                                    }
+                                    Text(
+                                        text = selectedReportType.description,
+                                        fontSize = 10.sp,
+                                        fontFamily = AppFontFamily,
+                                        color = Color(0xFF64748B),
+                                        maxLines = 1
+                                    )
                                 }
+                                Icon(
+                                    imageVector = if (reportTypeDropdownExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                                    contentDescription = "Chọn loại báo cáo",
+                                    tint = Color(0xFF475569)
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = reportTypeDropdownExpanded,
+                            onDismissRequest = { reportTypeDropdownExpanded = false },
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            Text(
+                                text = if (lang == AppLanguage.VI) "CHỌN LOẠI BÁO CÁO:" else "SELECT REPORT TYPE:",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF64748B),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                            )
+                            ReportType.values().forEach { rType ->
+                                val isSelected = selectedReportType == rType
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = rType.title,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                fontFamily = AppFontFamily,
+                                                color = if (isSelected) IndigoSecondary else Color(0xFF1E293B)
+                                            )
+                                            Text(
+                                                text = rType.description,
+                                                fontSize = 10.sp,
+                                                fontFamily = AppFontFamily,
+                                                color = Color(0xFF64748B)
+                                            )
+                                        }
+                                    },
+                                    trailingIcon = {
+                                        if (isSelected) {
+                                            Icon(
+                                                Icons.Filled.Check,
+                                                contentDescription = null,
+                                                tint = EmeraldPrimary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedReportType = rType
+                                        reportTypeDropdownExpanded = false
+                                    },
+                                    modifier = Modifier.background(if (isSelected) Color(0xFFEEF2FF) else Color.Transparent)
+                                )
                             }
                         }
                     }
@@ -216,9 +278,9 @@ fun ExportReportDialog(
                     }
                 }
 
-                // Live Preview Canvas
+                // Live Preview Canvas (Expanded with generous height)
                 Text(
-                    text = "Xem trước nội dung báo cáo:",
+                    text = if (lang == AppLanguage.VI) "Xem trước nội dung báo cáo:" else "Report Preview:",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = AppFontFamily,
@@ -230,7 +292,7 @@ fun ExportReportDialog(
                     color = Color(0xFFFAFBFD),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 260.dp)
+                        .heightIn(min = 260.dp, max = 420.dp)
                         .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
                 ) {
                     val horizontalScrollState = rememberScrollState()
@@ -261,7 +323,7 @@ fun ExportReportDialog(
                 OutlinedButton(
                     onClick = {
                         clipboardManager.setText(AnnotatedString(reportText))
-                        copiedNotice = "Đã sao chép toàn bộ báo cáo vào bộ nhớ tạm!"
+                        copiedNotice = if (lang == AppLanguage.VI) "Đã sao chép toàn bộ báo cáo vào bộ nhớ tạm!" else "Copied full report to clipboard!"
                     },
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
@@ -269,7 +331,7 @@ fun ExportReportDialog(
                 ) {
                     Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Sao chép", fontSize = 12.sp, fontFamily = AppFontFamily)
+                    Text(if (lang == AppLanguage.VI) "Sao chép" else "Copy", fontSize = 12.sp, fontFamily = AppFontFamily)
                 }
 
                 // Share Button
@@ -284,13 +346,13 @@ fun ExportReportDialog(
                 ) {
                     Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Chia sẻ báo cáo", fontSize = 12.sp, fontFamily = AppFontFamily, fontWeight = FontWeight.Bold)
+                    Text(if (lang == AppLanguage.VI) "Chia sẻ báo cáo" else "Share Report", fontSize = 12.sp, fontFamily = AppFontFamily, fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Đóng", fontFamily = AppFontFamily)
+                Text(if (lang == AppLanguage.VI) "Đóng" else "Close", fontFamily = AppFontFamily)
             }
         }
     )
