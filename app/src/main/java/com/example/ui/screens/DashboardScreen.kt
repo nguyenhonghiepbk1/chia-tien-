@@ -148,7 +148,7 @@ fun DashboardScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Thành viên chi hộ (Paid)",
+                                    text = "Người trả (Paid)",
                                     fontSize = 11.sp,
                                     color = Color(0xFF64748B)
                                 )
@@ -284,7 +284,7 @@ fun DashboardScreen(
                                     color = if (uiState.financialSummary.isBalanced) Color(0xFF065F46) else Color(0xFF991B1B)
                                 )
                                 Text(
-                                    text = "Thuật toán kiểm tra liên tục đảm bảo không thất thoát",
+                                    text = "Đã đối soát",
                                     fontSize = 10.sp,
                                     color = if (uiState.financialSummary.isBalanced) Color(0xFF047857) else Color(0xFFB91C1C)
                                 )
@@ -684,7 +684,7 @@ fun DashboardScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Chọn nhân vật để trải nghiệm phân quyền đầy đủ (Admin, Thủ quỹ, Thành viên, Người xem):",
+                        text = "Chọn phân quyền (Admin, Thủ quỹ, Thành viên, Người xem):",
                         fontSize = 12.sp,
                         color = Color(0xFF64748B)
                     )
