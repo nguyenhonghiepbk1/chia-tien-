@@ -714,7 +714,21 @@ fun ExchangeRatesDialog(
                     OutlinedTextField(
                         value = rateValueText,
                         onValueChange = { rateValueText = it },
-                        label = { Text("1 $selectedCode = ? VND") },
+                        label = { Text("1 $selectedCode = ? VND", color = Color(0xFFDC2626)) },
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = Color(0xFFDC2626),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFFDC2626),
+                            unfocusedTextColor = Color(0xFFDC2626),
+                            focusedBorderColor = Color(0xFFDC2626),
+                            unfocusedBorderColor = Color(0xFFF87171),
+                            focusedLabelColor = Color(0xFFDC2626),
+                            unfocusedLabelColor = Color(0xFFDC2626),
+                            cursorColor = Color(0xFFDC2626)
+                        ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = {
                             focusManager.clearFocus()

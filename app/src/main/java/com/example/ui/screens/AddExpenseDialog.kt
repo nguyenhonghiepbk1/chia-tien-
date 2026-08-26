@@ -478,7 +478,26 @@ fun AddExpenseDialog(
                                     OutlinedTextField(
                                         value = exchangeRateText,
                                         onValueChange = { exchangeRateText = it },
-                                        label = { Text("Tỷ giá quy đổi (1 $selectedCurrency = ? VND)") },
+                                        label = {
+                                            Text(
+                                                "Tỷ giá quy đổi (1 $selectedCurrency = ? VND)",
+                                                color = Color(0xFFDC2626)
+                                            )
+                                        },
+                                        textStyle = androidx.compose.ui.text.TextStyle(
+                                            color = Color(0xFFDC2626),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        ),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedTextColor = Color(0xFFDC2626),
+                                            unfocusedTextColor = Color(0xFFDC2626),
+                                            focusedBorderColor = Color(0xFFDC2626),
+                                            unfocusedBorderColor = Color(0xFFF87171),
+                                            focusedLabelColor = Color(0xFFDC2626),
+                                            unfocusedLabelColor = Color(0xFFDC2626),
+                                            cursorColor = Color(0xFFDC2626)
+                                        ),
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Decimal,
                                             imeAction = ImeAction.Next
