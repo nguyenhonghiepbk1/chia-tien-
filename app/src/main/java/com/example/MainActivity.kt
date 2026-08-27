@@ -67,6 +67,7 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
     var showCreateTripDialog by remember { mutableStateOf(false) }
     var showJoinTripDialog by remember { mutableStateOf(false) }
     var showExportReportDialog by remember { mutableStateOf(false) }
+    var showUserGuideScreen by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -147,6 +148,18 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
                                 imageVector = Icons.Filled.Description,
                                 contentDescription = AppStrings.exportReport(lang),
                                 tint = IndigoSecondary
+                            )
+                        }
+
+                        // User Guide Button in TopAppBar
+                        IconButton(
+                            onClick = { showUserGuideScreen = true },
+                            modifier = Modifier.testTag("user_guide_top_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.HelpOutline,
+                                contentDescription = if (lang == AppLanguage.VI) "Hướng dẫn sử dụng" else "User Guide",
+                                tint = Color(0xFF2563EB)
                             )
                         }
 
@@ -290,6 +303,7 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
                         onOpenExportReport = { showExportReportDialog = true },
                         onOpenCreateTrip = { showCreateTripDialog = true },
                         onOpenJoinTrip = { showJoinTripDialog = true },
+                        onOpenUserGuide = { showUserGuideScreen = true },
                         onSwitchUser = { memberId -> viewModel.switchUserPersona(memberId) },
                         onSelectTrip = { tripId -> viewModel.selectTrip(tripId) },
                         onEditTrip = { trip, title, desc, start, end ->
@@ -335,7 +349,8 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
                         },
                         onSelectLanguage = { newLang ->
                             viewModel.setLanguage(newLang)
-                        }
+                        },
+                        onOpenUserGuide = { showUserGuideScreen = true }
                     )
                 }
             }
@@ -393,6 +408,25 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
                 showJoinTripDialog = false
             }
         )
+    }
+
+    if (showUserGuideScreen) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showUserGuideScreen = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                UserGuideScreen(
+                    onBack = { showUserGuideScreen = false }
+                )
+            }
+        }
     }
 }
 

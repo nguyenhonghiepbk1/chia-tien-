@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -45,6 +46,7 @@ fun DashboardScreen(
     onOpenExportReport: () -> Unit,
     onOpenCreateTrip: () -> Unit,
     onOpenJoinTrip: () -> Unit,
+    onOpenUserGuide: () -> Unit = {},
     onSwitchUser: (String) -> Unit,
     onSelectTrip: (String) -> Unit = {},
     onEditTrip: (TripEntity, String, String, Long, Long) -> Unit = { _, _, _, _, _ -> },
@@ -71,6 +73,90 @@ fun DashboardScreen(
                 onOpenUserPicker = { showUserPicker = true },
                 onSelectTrip = onSelectTrip
             )
+        }
+
+        // User Guide Banner Link
+        item {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFFEFF6FF),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onOpenUserGuide() }
+                    .testTag("dashboard_user_guide_banner")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF3B82F6)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.MenuBook,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (lang == AppLanguage.VI) "Cẩm Nang Hướng Dẫn Sử Dụng" else "User Guide & Handbook",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1E3A8A)
+                            )
+                            Text(
+                                text = if (lang == AppLanguage.VI)
+                                    "Xem quy trình 4 bước, cách chia tiền, quét VietQR & ngoại tệ"
+                                else
+                                    "Learn workflows, split methods, VietQR & currency rates",
+                                fontSize = 11.sp,
+                                color = Color(0xFF3B82F6),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF3B82F6)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (lang == AppLanguage.VI) "Xem ngay" else "Read",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // Financial Overview Cards
@@ -314,20 +400,31 @@ fun DashboardScreen(
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Button(
                     onClick = onOpenAddExpense,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(65.dp)
                         .testTag("quick_add_expense_button")
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(1.dp))
-                    Text("Thêm Chi", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            if (lang == AppLanguage.VI) "Thêm Chi" else "Expense",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
                 }
 
                 FilledTonalButton(
@@ -337,14 +434,25 @@ fun DashboardScreen(
                         containerColor = AmberTertiaryContainer,
                         contentColor = AmberOnTertiaryContainer
                     ),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(65.dp)
                         .testTag("quick_add_fund_button")
                 ) {
-                    Icon(Icons.Filled.Savings, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(1.dp))
-                    Text("Nộp Quỹ", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Filled.Savings, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            if (lang == AppLanguage.VI) "Nộp Quỹ" else "Fund",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
                 }
 
                 FilledTonalButton(
@@ -354,14 +462,54 @@ fun DashboardScreen(
                         containerColor = IndigoSecondaryContainer,
                         contentColor = IndigoOnSecondaryContainer
                     ),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(65.dp)
                         .testTag("quick_export_report_button")
                 ) {
-                    Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(1.dp))
-                    Text("Báo Cáo", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            if (lang == AppLanguage.VI) "Báo Cáo" else "Report",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                FilledTonalButton(
+                    onClick = onOpenUserGuide,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color(0xFFEFF6FF),
+                        contentColor = Color(0xFF1D4ED8)
+                    ),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(65.dp)
+                        .testTag("quick_user_guide_button")
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Filled.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF2563EB))
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            if (lang == AppLanguage.VI) "Hướng Dẫn" else "Guide",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1D4ED8),
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }
