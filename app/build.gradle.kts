@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.tripfinance.vszupq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 4
-    versionName = "4.0"
+    versionCode = 9
+    versionName = "0.0.0.9"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
