@@ -27,10 +27,11 @@ import androidx.compose.ui.unit.sp
 import com.example.data.entity.TripEntity
 import com.example.domain.model.BalanceStatus
 import com.example.ui.components.*
+import com.example.ui.locale.AppLanguage
+import com.example.ui.locale.AppStrings
+import com.example.ui.locale.LocalAppLanguage
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.UiState
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,13 +47,13 @@ fun DashboardScreen(
     onOpenJoinTrip: () -> Unit,
     onSwitchUser: (String) -> Unit,
     onSelectTrip: (String) -> Unit = {},
-    onEditTrip: (trip: TripEntity, title: String, description: String, startDate: Long, endDate: Long) -> Unit = { _, _, _, _, _ -> },
+    onEditTrip: (TripEntity, String, String, Long, Long) -> Unit = { _, _, _, _, _ -> },
     onDeleteTrip: (TripEntity) -> Unit = {}
 ) {
+    val lang = LocalAppLanguage.current
     var showUserPicker by remember { mutableStateOf(false) }
     var tripToEdit by remember { mutableStateOf<TripEntity?>(null) }
     var tripToDelete by remember { mutableStateOf<TripEntity?>(null) }
-    val isAdmin = uiState.currentMember?.role == "ADMIN"
 
     LazyColumn(
         modifier = Modifier
@@ -148,7 +149,7 @@ fun DashboardScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Người trả (Paid)",
+                                    text = "Thành viên chi hộ (Paid)",
                                     fontSize = 11.sp,
                                     color = Color(0xFF64748B)
                                 )
@@ -284,7 +285,7 @@ fun DashboardScreen(
                                     color = if (uiState.financialSummary.isBalanced) Color(0xFF065F46) else Color(0xFF991B1B)
                                 )
                                 Text(
-                                    text = "Đã đối soát",
+                                    text = "Thuật toán kiểm tra liên tục đảm bảo không thất thoát",
                                     fontSize = 10.sp,
                                     color = if (uiState.financialSummary.isBalanced) Color(0xFF047857) else Color(0xFFB91C1C)
                                 )
@@ -320,12 +321,12 @@ fun DashboardScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
+                        .height(65.dp)
                         .testTag("quick_add_expense_button")
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text("Thêm Chi", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(1.dp))
+                    Text("Thêm Chi", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
 
                 FilledTonalButton(
@@ -337,12 +338,12 @@ fun DashboardScreen(
                     ),
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
+                        .height(65.dp)
                         .testTag("quick_add_fund_button")
                 ) {
                     Icon(Icons.Filled.Savings, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text("Nộp Quỹ", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(1.dp))
+                    Text("Nộp Quỹ", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
 
                 FilledTonalButton(
@@ -354,180 +355,12 @@ fun DashboardScreen(
                     ),
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
+                        .height(65.dp)
                         .testTag("quick_export_report_button")
                 ) {
                     Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text("Báo Cáo", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        // Section: Danh Sách Các Đoàn Đã Tạo (Created Trips List)
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Danh Sách Các Đoàn Đã Tạo (${uiState.allTrips.size})",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                TextButton(
-                    onClick = onOpenCreateTrip,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                    modifier = Modifier.height(30.dp)
-                ) {
-                    Icon(Icons.Filled.AddCircleOutline, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Tạo đoàn mới", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                uiState.allTrips.forEach { trip ->
-                    val isCurrent = trip.id == uiState.currentTrip?.id
-                    Card(
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isCurrent) Color(0xFFF0FDF4) else MaterialTheme.colorScheme.surface
-                        ),
-                        border = if (isCurrent) androidx.compose.foundation.BorderStroke(1.5.dp, EmeraldPrimary) else null,
-                        elevation = CardDefaults.cardElevation(defaultElevation = if (isCurrent) 2.dp else 1.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelectTrip(trip.id) }
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                    Icon(
-                                        Icons.Filled.Luggage,
-                                        contentDescription = null,
-                                        tint = if (isCurrent) EmeraldPrimary else Color(0xFF64748B),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = trip.title,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isCurrent) EmeraldPrimary else MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = if (isCurrent) EmeraldPrimaryContainer else Color(0xFFF1F5F9)
-                                ) {
-                                    Text(
-                                        text = "MÃ: ${trip.joinCode}",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isCurrent) EmeraldOnPrimaryContainer else Color(0xFF475569),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-
-                            if (trip.description.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = trip.description,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF64748B),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(color = Color(0xFFF1F5F9))
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Lịch trình: ${dateFormat.format(Date(trip.startDate))} - ${dateFormat.format(Date(trip.endDate))}",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF94A3B8)
-                                )
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (isAdmin) {
-                                        IconButton(
-                                            onClick = { tripToEdit = trip },
-                                            modifier = Modifier.size(28.dp).testTag("edit_trip_${trip.id}")
-                                        ) {
-                                            Icon(
-                                                Icons.Filled.Edit,
-                                                contentDescription = "Sửa đoàn",
-                                                tint = IndigoSecondary,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-
-                                        if (uiState.allTrips.size > 1) {
-                                            IconButton(
-                                                onClick = { tripToDelete = trip },
-                                                modifier = Modifier.size(28.dp).testTag("delete_trip_${trip.id}")
-                                            ) {
-                                                Icon(
-                                                    Icons.Filled.DeleteOutline,
-                                                    contentDescription = "Xóa đoàn",
-                                                    tint = DangerRed,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    if (!isCurrent) {
-                                        FilledTonalButton(
-                                            onClick = { onSelectTrip(trip.id) },
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                            shape = RoundedCornerShape(6.dp),
-                                            modifier = Modifier.height(26.dp)
-                                        ) {
-                                            Text("Chọn đoàn", fontSize = 10.sp)
-                                        }
-                                    } else {
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = EmeraldPrimary
-                                        ) {
-                                            Text(
-                                                text = "Đang chọn",
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    Spacer(modifier = Modifier.width(1.dp))
+                    Text("Báo Cáo", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -541,13 +374,13 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Phân Loại Chi Tiêu",
+                        text = if (lang == AppLanguage.VI) "Phân Loại Chi Tiêu" else "Category Breakdown",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "${uiState.expenses.size} khoản chi",
+                        text = "${uiState.expenses.size} ${if (lang == AppLanguage.VI) "khoản chi" else "expenses"}",
                         fontSize = 12.sp,
                         color = Color(0xFF64748B)
                     )
@@ -635,31 +468,30 @@ fun DashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     uiState.memberStatuses.forEach { status ->
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = status.member.name,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    RoleBadge(role = status.member.role)
-                                }
+                            Text(
+                                text = status.member.name,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                BalanceChip(balance = status.balance, status = status.status)
                                 Text(
                                     text = "Đã chi: ${NumberFormatUtils.formatVnd(status.totalPaid)} • Phải trả: ${NumberFormatUtils.formatVnd(status.totalOwed)}",
                                     fontSize = 11.sp,
                                     color = Color(0xFF64748B)
                                 )
                             }
-
-                            BalanceChip(balance = status.balance, status = status.status)
                         }
                         if (status != uiState.memberStatuses.last()) {
                             HorizontalDivider(color = Color(0xFFF1F5F9))
@@ -684,7 +516,7 @@ fun DashboardScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Chọn phân quyền (Admin, Thủ quỹ, Thành viên, Người xem):",
+                        text = "Chọn nhân vật để trải nghiệm phân quyền đầy đủ (Admin, Thủ quỹ, Thành viên, Người xem):",
                         fontSize = 12.sp,
                         color = Color(0xFF64748B)
                     )
@@ -730,30 +562,6 @@ fun DashboardScreen(
                 TextButton(onClick = { showUserPicker = false }) {
                     Text("Đóng")
                 }
-            }
-        )
-    }
-
-    // Edit Trip Dialog
-    tripToEdit?.let { tr ->
-        EditTripDialog(
-            trip = tr,
-            onDismiss = { tripToEdit = null },
-            onConfirm = { title, desc, start, end ->
-                onEditTrip(tr, title, desc, start, end)
-                tripToEdit = null
-            }
-        )
-    }
-
-    // Delete Trip Dialog
-    tripToDelete?.let { tr ->
-        DeleteTripDialog(
-            tripTitle = tr.title,
-            onDismiss = { tripToDelete = null },
-            onConfirm = {
-                onDeleteTrip(tr)
-                tripToDelete = null
             }
         )
     }
