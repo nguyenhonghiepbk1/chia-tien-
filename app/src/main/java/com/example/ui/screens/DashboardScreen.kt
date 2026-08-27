@@ -68,7 +68,8 @@ fun DashboardScreen(
                 uiState = uiState,
                 onOpenCreateTrip = onOpenCreateTrip,
                 onOpenJoinTrip = onOpenJoinTrip,
-                onOpenUserPicker = { showUserPicker = true }
+                onOpenUserPicker = { showUserPicker = true },
+                onSelectTrip = onSelectTrip
             )
         }
 
@@ -572,8 +573,12 @@ fun TripHeaderCard(
     uiState: UiState,
     onOpenCreateTrip: () -> Unit,
     onOpenJoinTrip: () -> Unit,
-    onOpenUserPicker: () -> Unit
+    onOpenUserPicker: () -> Unit,
+    onSelectTrip: (String) -> Unit
 ) {
+    val lang = LocalAppLanguage.current
+    var showTripDropdown by remember { mutableStateOf(false) }
+
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -581,7 +586,7 @@ fun TripHeaderCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header Top
+            // Header Top: Join Code Badge + Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -637,24 +642,233 @@ fun TripHeaderCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Trip Title
-            Text(
-                text = uiState.currentTrip?.title ?: "Chưa có đoàn nào",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = uiState.currentTrip?.description ?: "Quản lý tài chính minh bạch cho đoàn",
-                fontSize = 12.sp,
-                color = Color(0xCCFFFFFF),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Prominent Dropdown Selector for Active Business Trip
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0x26000000),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { showTripDropdown = true }
+                        .testTag("dashboard_trip_dropdown_button")
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0x33FFFFFF)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Filled.FlightTakeoff,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (lang == AppLanguage.VI) "ĐOÀN CÔNG TÁC ĐANG CHỌN" else "SELECTED TRIP",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFCCFBF1)
+                                )
+                                Text(
+                                    text = uiState.currentTrip?.title ?: if (lang == AppLanguage.VI) "Chưa chọn đoàn nào" else "No trip selected",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = uiState.currentTrip?.description ?: if (lang == AppLanguage.VI) "Chạm để đổi đoàn công tác" else "Tap to switch trip",
+                                    fontSize = 11.sp,
+                                    color = Color(0xCCFFFFFF),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                        // Dropdown Arrow Indicator Button
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0x33FFFFFF)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (lang == AppLanguage.VI) "Đổi đoàn" else "Switch",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Icon(
+                                    Icons.Filled.ArrowDropDown,
+                                    contentDescription = "Danh sách xổ xuống",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Dropdown Menu List
+                DropdownMenu(
+                    expanded = showTripDropdown,
+                    onDismissRequest = { showTripDropdown = false },
+                    modifier = Modifier
+                        .fillMaxWidth(0.92f)
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    // Header of the dropdown list
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (lang == AppLanguage.VI) "Chọn Đoàn Công Tác" else "Select Business Trip",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${uiState.allTrips.size} ${if (lang == AppLanguage.VI) "đoàn" else "trips"}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                    if (uiState.allTrips.isEmpty()) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = if (lang == AppLanguage.VI) "Chưa có đoàn nào trong danh sách" else "No trips available",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF64748B)
+                                )
+                            },
+                            onClick = { showTripDropdown = false }
+                        )
+                    } else {
+                        uiState.allTrips.forEach { trip ->
+                            val isSelected = trip.id == uiState.currentTrip?.id
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = trip.title,
+                                                fontSize = 14.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) EmeraldPrimary else MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "Mã: ${trip.joinCode}${if (trip.description.isNotBlank()) " • ${trip.description}" else ""}",
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF64748B),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        if (isSelected) {
+                                            Icon(
+                                                Icons.Filled.CheckCircle,
+                                                contentDescription = "Đang chọn",
+                                                tint = EmeraldPrimary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    onSelectTrip(trip.id)
+                                    showTripDropdown = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (isSelected) Icons.Filled.FlightTakeoff else Icons.Outlined.WorkOutline,
+                                        contentDescription = null,
+                                        tint = if (isSelected) EmeraldPrimary else Color(0xFF64748B),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                },
+                                colors = MenuDefaults.itemColors(
+                                    textColor = if (isSelected) EmeraldPrimary else MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                    // Quick Actions in dropdown menu
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = if (lang == AppLanguage.VI) "+ Tạo đoàn công tác mới" else "+ Create New Trip",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = EmeraldPrimary
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Filled.AddCircleOutline, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(18.dp))
+                        },
+                        onClick = {
+                            showTripDropdown = false
+                            onOpenCreateTrip()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = if (lang == AppLanguage.VI) "Nhập mã tham gia đoàn" else "Join Trip with Code",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Filled.GroupAdd, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
+                        },
+                        onClick = {
+                            showTripDropdown = false
+                            onOpenJoinTrip()
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
             HorizontalDivider(color = Color(0x33FFFFFF))
             Spacer(modifier = Modifier.height(8.dp))
 
