@@ -319,28 +319,49 @@ fun ExpenseItemCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
 
+                // Thời gian chi đặt trực tiếp dưới tên khoản chi
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = if (expense.payerType == "FUND") Color(0xFFFEF3C7) else Color(0xFFE0E7FF)
+                    Icon(
+                        imageVector = Icons.Outlined.AccessTime,
+                        contentDescription = null,
+                        tint = Color(0xFF94A3B8),
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = dateStr,
+                        fontSize = 11.sp,
+                        color = Color(0xFF64748B)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Người chi hộ đặt ở phía dưới thời gian chi
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (expense.payerType == "FUND") Color(0xFFFEF3C7) else Color(0xFFE0E7FF)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                     ) {
+                        Icon(
+                            imageVector = if (expense.payerType == "FUND") Icons.Filled.Savings else Icons.Filled.Person,
+                            contentDescription = null,
+                            tint = if (expense.payerType == "FUND") Color(0xFF92400E) else Color(0xFF3730A3),
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = if (expense.payerType == "FUND") "Quỹ chi" else "Chi hộ: $payerName",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (expense.payerType == "FUND") Color(0xFF92400E) else Color(0xFF3730A3),
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            color = if (expense.payerType == "FUND") Color(0xFF92400E) else Color(0xFF3730A3)
                         )
                     }
-
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = dateStr,
-                        fontSize = 10.sp,
-                        color = Color(0xFF94A3B8)
-                    )
                 }
             }
 
