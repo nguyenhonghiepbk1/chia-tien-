@@ -45,7 +45,6 @@ fun DashboardScreen(
     onOpenAddFund: () -> Unit,
     onOpenExportReport: () -> Unit,
     onOpenCreateTrip: () -> Unit,
-    onOpenJoinTrip: () -> Unit,
     onOpenUserGuide: () -> Unit = {},
     onSwitchUser: (String) -> Unit,
     onSelectTrip: (String) -> Unit = {},
@@ -69,7 +68,6 @@ fun DashboardScreen(
             TripHeaderCard(
                 uiState = uiState,
                 onOpenCreateTrip = onOpenCreateTrip,
-                onOpenJoinTrip = onOpenJoinTrip,
                 onOpenUserPicker = { showUserPicker = true },
                 onSelectTrip = onSelectTrip
             )
@@ -720,7 +718,6 @@ fun DashboardScreen(
 fun TripHeaderCard(
     uiState: UiState,
     onOpenCreateTrip: () -> Unit,
-    onOpenJoinTrip: () -> Unit,
     onOpenUserPicker: () -> Unit,
     onSelectTrip: (String) -> Unit
 ) {
@@ -734,7 +731,7 @@ fun TripHeaderCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header Top: Join Code Badge + Action Buttons
+            // Header Top: Offline Badge + Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -749,14 +746,14 @@ fun TripHeaderCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Filled.Key,
+                            Icons.Filled.Shield,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "MÃ: ${uiState.currentTrip?.joinCode ?: "---"}",
+                            text = if (lang == AppLanguage.VI) "DỮ LIỆU OFFLINE CỤC BỘ" else "LOCAL OFFLINE STORAGE",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -764,27 +761,15 @@ fun TripHeaderCard(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilledTonalIconButton(
-                        onClick = onOpenJoinTrip,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = Color(0x33FFFFFF),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(Icons.Filled.GroupAdd, contentDescription = "Nhập mã tham gia", modifier = Modifier.size(16.dp))
-                    }
-                    FilledTonalIconButton(
-                        onClick = onOpenCreateTrip,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = Color(0x33FFFFFF),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = "Tạo đoàn mới", modifier = Modifier.size(16.dp))
-                    }
+                FilledTonalIconButton(
+                    onClick = onOpenCreateTrip,
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color(0x33FFFFFF),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Tạo đoàn mới", modifier = Modifier.size(16.dp))
                 }
             }
 
@@ -940,7 +925,7 @@ fun TripHeaderCard(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
-                                                text = "Mã: ${trip.joinCode}${if (trip.description.isNotBlank()) " • ${trip.description}" else ""}",
+                                                text = if (trip.description.isNotBlank()) trip.description else if (lang == AppLanguage.VI) "Lưu trữ cục bộ" else "Local storage",
                                                 fontSize = 11.sp,
                                                 color = Color(0xFF64748B),
                                                 maxLines = 1,
@@ -994,23 +979,6 @@ fun TripHeaderCard(
                         onClick = {
                             showTripDropdown = false
                             onOpenCreateTrip()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = if (lang == AppLanguage.VI) "Nhập mã tham gia đoàn" else "Join Trip with Code",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Filled.GroupAdd, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
-                        },
-                        onClick = {
-                            showTripDropdown = false
-                            onOpenJoinTrip()
                         }
                     )
                 }

@@ -237,7 +237,7 @@ fun MembersAndSettingsScreen(
             }
         }
 
-        // Trip Details & 6-Char Join Code
+        // Offline & Data Storage Notice Card
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -246,61 +246,31 @@ fun MembersAndSettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = if (lang == AppLanguage.VI) "MÃ THAM GIA ĐOÀN (6 KÝ TỰ)" else "TRIP JOIN CODE (6 CHARACTERS)",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF64748B)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = EmeraldPrimaryContainer
-                        ) {
-                            Text(
-                                text = uiState.currentTrip?.joinCode ?: "---",
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = EmeraldOnPrimaryContainer,
-                                letterSpacing = 3.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                            )
-                        }
-
-                        Button(
-                            onClick = {
-                                val code = uiState.currentTrip?.joinCode ?: ""
-                                clipboardManager.setText(AnnotatedString(code))
-                                copiedCodeNotice = if (lang == AppLanguage.VI) "Đã chép mã $code!" else "Copied code $code!"
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (lang == AppLanguage.VI) "Sao chép mã" else "Copy Code")
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.Shield,
+                            contentDescription = null,
+                            tint = EmeraldPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (lang == AppLanguage.VI) "CHẾ ĐỘ HOẠT ĐỘNG THUẦN OFFLINE" else "PURE OFFLINE OPERATION",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF64748B)
+                        )
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    if (copiedCodeNotice != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(copiedCodeNotice!!, fontSize = 11.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.SemiBold)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = if (lang == AppLanguage.VI) 
-                            "Thành viên mới chỉ cần nhập mã 6 ký tự trên để tham gia đoàn ngay lập tức mà không cần thủ tục phức tạp."
-                        else 
-                            "New members can enter this 6-character code to join the trip instantly without complicated setups.",
-                        fontSize = 11.sp,
-                        color = Color(0xFF64748B)
+                        text = if (lang == AppLanguage.VI)
+                            "Ứng dụng hoạt động hoàn toàn offline, 100% dữ liệu tài chính, chi tiêu và quỹ được lưu trữ cục bộ, bảo mật tuyệt đối trên thiết bị của bạn. Không cần kết nối internet hay tài khoản."
+                        else
+                            "The app operates completely offline. 100% of your financial, expense, and fund data is stored locally and securely on your device with no internet connection or accounts required.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF475569),
+                        lineHeight = 18.sp
                     )
                 }
             }

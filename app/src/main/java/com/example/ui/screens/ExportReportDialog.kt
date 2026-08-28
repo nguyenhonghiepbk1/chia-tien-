@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import com.example.domain.export.PdfReportExporter
 import com.example.domain.export.ReportGenerator
 import com.example.domain.export.ReportType
 import com.example.ui.locale.AppLanguage
@@ -47,7 +48,7 @@ fun ExportReportDialog(
     val clipboardManager = LocalClipboardManager.current
     val lang = LocalAppLanguage.current
     var selectedReportType by remember { mutableStateOf(ReportType.FULL_SETTLEMENT) }
-    var exportFormat by remember { mutableStateOf("TEXT") } // TEXT or CSV
+    var exportFormat by remember { mutableStateOf("PDF") } // PDF, TEXT, CSV
     var copiedNotice by remember { mutableStateOf<String?>(null) }
     var reportTypeDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -113,17 +114,33 @@ fun ExportReportDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Format Selector Chips
+                // Format Selector Chips (PDF, Văn bản, CSV)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    FilterChip(
+                        selected = exportFormat == "PDF",
+                        onClick = { exportFormat = "PDF" },
+                        label = {
+                            Text(
+                                "PDF chuẩn in",
+                                fontSize = 11.sp,
+                                fontFamily = AppFontFamily,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Filled.PictureAsPdf, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(16.dp))
+                        },
+                        modifier = Modifier.weight(1f).testTag("format_pdf_chip")
+                    )
                     FilterChip(
                         selected = exportFormat == "TEXT",
                         onClick = { exportFormat = "TEXT" },
                         label = {
                             Text(
-                                if (lang == AppLanguage.VI) "Văn bản báo cáo" else "Text Report",
+                                if (lang == AppLanguage.VI) "Văn bản" else "Text",
                                 fontSize = 11.sp,
                                 fontFamily = AppFontFamily,
                                 fontWeight = FontWeight.SemiBold
@@ -132,14 +149,14 @@ fun ExportReportDialog(
                         leadingIcon = {
                             Icon(Icons.Filled.Article, contentDescription = null, modifier = Modifier.size(16.dp))
                         },
-                        modifier = Modifier.weight(1.2f)
+                        modifier = Modifier.weight(0.9f).testTag("format_text_chip")
                     )
                     FilterChip(
                         selected = exportFormat == "CSV",
                         onClick = { exportFormat = "CSV" },
                         label = {
                             Text(
-                                if (lang == AppLanguage.VI) "Excel / CSV (UTF-8)" else "Excel / CSV",
+                                "Excel/CSV",
                                 fontSize = 11.sp,
                                 fontFamily = AppFontFamily,
                                 fontWeight = FontWeight.SemiBold
@@ -148,8 +165,33 @@ fun ExportReportDialog(
                         leadingIcon = {
                             Icon(Icons.Filled.TableView, contentDescription = null, modifier = Modifier.size(16.dp))
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(0.95f).testTag("format_csv_chip")
                     )
+                }
+
+                // If in PDF mode, show banner explaining PDF structure with Bank accounts included
+                if (exportFormat == "PDF") {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFEFF6FF),
+                        border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Báo cáo PDF chuẩn A4 đầy đủ: Tổng quan thu chi, Bảng quyết toán & số dư từng người, Kế hoạch chuyển khoản, BẢN KÊ CHI TIẾT CÁC KHOẢN CHI TIÊU & THU QUỸ và BẢNG SỐ TÀI KHOẢN NGÂN HÀNG các thành viên.",
+                                fontSize = 11.sp,
+                                color = Color(0xFF1E40AF),
+                                lineHeight = 15.sp,
+                                fontFamily = AppFontFamily
+                            )
+                        }
+                    }
                 }
 
                 // If in TEXT mode, compact dropdown selector for report type
@@ -278,9 +320,9 @@ fun ExportReportDialog(
                     }
                 }
 
-                // Live Preview Canvas (Expanded with generous height)
+                // Live Preview Canvas
                 Text(
-                    text = if (lang == AppLanguage.VI) "Xem trước nội dung báo cáo:" else "Report Preview:",
+                    text = if (exportFormat == "PDF") "Xem trước nội dung văn bản trong báo cáo:" else (if (lang == AppLanguage.VI) "Xem trước nội dung báo cáo:" else "Report Preview:"),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = AppFontFamily,
@@ -292,7 +334,7 @@ fun ExportReportDialog(
                     color = Color(0xFFFAFBFD),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 260.dp, max = 420.dp)
+                        .heightIn(min = 220.dp, max = 380.dp)
                         .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
                 ) {
                     val horizontalScrollState = rememberScrollState()
@@ -319,34 +361,63 @@ fun ExportReportDialog(
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Copy Button
-                OutlinedButton(
-                    onClick = {
-                        clipboardManager.setText(AnnotatedString(reportText))
-                        copiedNotice = if (lang == AppLanguage.VI) "Đã sao chép toàn bộ báo cáo vào bộ nhớ tạm!" else "Copied full report to clipboard!"
-                    },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    modifier = Modifier.testTag("copy_report_button")
-                ) {
-                    Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (lang == AppLanguage.VI) "Sao chép" else "Copy", fontSize = 12.sp, fontFamily = AppFontFamily)
-                }
+                if (exportFormat == "PDF") {
+                    // Xuất & Chia sẻ file PDF
+                    Button(
+                        onClick = {
+                            val creator = uiState.currentMember?.name ?: if (lang == AppLanguage.VI) "Thành viên" else "Member"
+                            PdfReportExporter.exportAndSharePdf(
+                                context = context,
+                                trip = uiState.currentTrip,
+                                members = uiState.members,
+                                summary = uiState.financialSummary,
+                                statuses = uiState.memberStatuses,
+                                settlementTransfers = uiState.settlementTransfers,
+                                expenses = uiState.expenses,
+                                funds = uiState.fundContributions,
+                                splits = uiState.allSplits,
+                                creatorName = creator
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.testTag("export_pdf_button")
+                    ) {
+                        Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Xuất & Gửi File PDF", fontSize = 12.sp, fontFamily = AppFontFamily, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    // Copy Button
+                    OutlinedButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(reportText))
+                            copiedNotice = if (lang == AppLanguage.VI) "Đã sao chép toàn bộ báo cáo vào bộ nhớ tạm!" else "Copied full report to clipboard!"
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.testTag("copy_report_button")
+                    ) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (lang == AppLanguage.VI) "Sao chép" else "Copy", fontSize = 12.sp, fontFamily = AppFontFamily)
+                    }
 
-                // Share Button
-                Button(
-                    onClick = {
-                        shareReport(context, reportText, uiState.currentTrip?.title ?: "Báo cáo đoàn", exportFormat)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = IndigoSecondary),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.testTag("share_report_button")
-                ) {
-                    Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (lang == AppLanguage.VI) "Chia sẻ báo cáo" else "Share Report", fontSize = 12.sp, fontFamily = AppFontFamily, fontWeight = FontWeight.Bold)
+                    // Share Button
+                    Button(
+                        onClick = {
+                            shareReport(context, reportText, uiState.currentTrip?.title ?: "Báo cáo đoàn", exportFormat)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = IndigoSecondary),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.testTag("share_report_button")
+                    ) {
+                        Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (lang == AppLanguage.VI) "Chia sẻ" else "Share", fontSize = 12.sp, fontFamily = AppFontFamily, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         },

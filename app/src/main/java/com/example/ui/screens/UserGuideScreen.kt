@@ -85,13 +85,13 @@ fun UserGuideScreen(
                 summaryVi = "Toàn bộ chu trình từ khi bắt đầu chuyến đi đến khi thanh toán dứt điểm công nợ.",
                 summaryEn = "Complete lifecycle from trip kickoff to final debt settlement.",
                 stepsVi = listOf(
-                    "Bước 1: Tạo đoàn công tác mới (hoặc nhập Mã tham gia nếu đã có người tạo trước).",
+                    "Bước 1: Tạo đoàn công tác mới trên thiết bị của bạn.",
                     "Bước 2: Cài đặt danh sách thành viên, phân vai trò (Trưởng đoàn, Thủ quỹ, Thành viên) và thiết lập tài khoản nhận tiền.",
                     "Bước 3: Thu quỹ đoàn đầu chuyến (nếu có) và liên tục ghi lại mọi khoản chi tiêu phát sinh trong chuyến đi.",
                     "Bước 4: Vào tab 'Quyết toán' vào cuối chuyến, hệ thống tự tính bù trừ tối ưu min-transfers và quét mã VietQR chuyển khoản là xong!"
                 ),
                 stepsEn = listOf(
-                    "Step 1: Create a new trip (or enter Join Code if already created).",
+                    "Step 1: Create a new trip on your device.",
                     "Step 2: Setup member roster, assign roles (Leader, Treasurer, Member), and configure bank details.",
                     "Step 3: Collect group fund up-front (if applicable) and log all trip expenses as they occur.",
                     "Step 4: Navigate to 'Settlement' tab at the end of the trip to view optimal min-transfers & scan VietQR to clear all debts!"
@@ -103,24 +103,24 @@ fun UserGuideScreen(
             GuideItem(
                 id = "trip_create_join",
                 category = GuideCategory.TRIP_MGMT,
-                titleVi = "2. Tạo đoàn mới và Mời thành viên tham gia",
-                titleEn = "2. Create a Trip & Invite Members",
-                summaryVi = "Cách khởi tạo chuyến đi, lấy mã Join Code và phân bổ người tham gia.",
-                summaryEn = "How to initialize trips, generate Join Codes, and distribute to members.",
+                titleVi = "2. Tạo đoàn mới và Quản lý danh sách thành viên",
+                titleEn = "2. Create a Trip & Manage Member Roster",
+                summaryVi = "Cách khởi tạo chuyến đi và phân bổ người tham gia trên thiết bị.",
+                summaryEn = "How to initialize trips and configure member details locally.",
                 stepsVi = listOf(
                     "Tại màn hình Tổng quan (Dashboard), bấm vào khung chọn đoàn xổ xuống và chọn '+ Tạo đoàn công tác mới'.",
-                    "Điền Tên đoàn (VD: 'Công tác Đà Nẵng 2026'), Mô tả, Ngày đi - Ngày về và Mã tham gia (VD: 'DN2026').",
-                    "Nhập Tên Trưởng đoàn/Thủ quỹ kèm thông tin Ngân hàng + Số tài khoản nhận tiền quỹ.",
-                    "Gửi Mã tham gia cho các thành viên trong đoàn để họ chọn 'Nhập mã tham gia đoàn' trên máy của họ."
+                    "Điền Tên đoàn (VD: 'Công tác Đà Nẵng 2026'), Mô tả và thông tin Trưởng đoàn/Thủ quỹ.",
+                    "Nhập thông tin Ngân hàng + Số tài khoản nhận tiền quyết toán.",
+                    "Thêm danh sách các thành viên tham gia chuyến đi tại tab 'Thành viên'."
                 ),
                 stepsEn = listOf(
                     "On Dashboard, tap the trip dropdown selector and pick '+ Create New Trip'.",
-                    "Fill in Trip Title (e.g. 'Da Nang Business Trip 2026'), Description, Dates, and Join Code (e.g. 'DN2026').",
-                    "Enter Admin/Treasurer name with Bank name + Account number for fund receipt.",
-                    "Share the Join Code with other team members so they can join via 'Join Trip with Code'."
+                    "Fill in Trip Title (e.g. 'Da Nang Business Trip 2026'), Description, and Leader/Treasurer name.",
+                    "Enter Bank name + Account number for settlement receipts.",
+                    "Add participating members easily under the 'Members' tab."
                 ),
-                tipsVi = "Mã tham gia không phân biệt hoa thường và giúp mọi người vào đúng dữ liệu của đoàn một cách nhanh chóng.",
-                tipsEn = "Join codes are case-insensitive and allow fast team onboarding.",
+                tipsVi = "Bạn có thể tạo và quản lý song song nhiều đoàn công tác khác nhau trực tiếp trên máy.",
+                tipsEn = "You can create and manage multiple business trips directly on your device.",
                 icon = Icons.Filled.FlightTakeoff
             ),
             GuideItem(
@@ -132,13 +132,13 @@ fun UserGuideScreen(
                 summaryEn = "Manage parallel or past trips seamlessly.",
                 stepsVi = listOf(
                     "Ngay đầu màn hình Tổng quan (Dashboard), bạn sẽ thấy nút chọn 'ĐOÀN CÔNG TÁC ĐANG CHỌN' có mũi tên xổ xuống.",
-                    "Chạm vào thanh này để mở danh sách toàn bộ các đoàn công tác bạn đã tạo hoặc đã tham gia.",
+                    "Chạm vào thanh này để mở danh sách toàn bộ các đoàn công tác bạn đã tạo.",
                     "Chạm vào đoàn bạn muốn chuyển sang: toàn bộ số liệu thu chi, quỹ, số dư thành viên sẽ lập tức chuyển đổi tức thì.",
                     "Bạn cũng có thể sửa thông tin hoặc xóa đoàn cũ ở phần danh sách đoàn phía dưới."
                 ),
                 stepsEn = listOf(
                     "At the top of the Dashboard, tap the 'SELECTED TRIP' card with the dropdown arrow.",
-                    "The dropdown lists all trips you have created or joined.",
+                    "The dropdown lists all trips you have created.",
                     "Tap on any trip to instantly switch all dashboards, expenses, fund, and balances.",
                     "You can also edit or delete past trips from the trip management list below."
                 ),
@@ -274,25 +274,25 @@ fun UserGuideScreen(
             GuideItem(
                 id = "offline_sync_faq",
                 category = GuideCategory.FAQ,
-                titleVi = "9. Đi máy bay / Không có mạng có dùng được không?",
-                titleEn = "9. Can I use the app Offline without Internet?",
-                summaryVi = "Ứng dụng hoạt động 100% ngoại tuyến (Offline-First) với cơ sở dữ liệu nội bộ SQLite.",
-                summaryEn = "100% Offline-First functionality backed by local SQLite Room database.",
+                titleVi = "9. Ứng dụng hoạt động Offline & Bảo mật dữ liệu",
+                titleEn = "9. Pure Offline Operation & Data Privacy",
+                summaryVi = "Ứng dụng hoạt động 100% ngoại tuyến với cơ sở dữ liệu nội bộ SQLite Room.",
+                summaryEn = "100% Offline functionality backed by local SQLite Room database.",
                 stepsVi = listOf(
-                    "Hoàn toàn ĐƯỢC! Ứng dụng được thiết kế theo kiến trúc Offline-First.",
-                    "Khi bạn ở trên máy bay, vùng không có sóng hoặc công tác nước ngoài chưa bật Roaming, bạn vẫn thêm chi tiêu, nộp quỹ và xem quyết toán bình thường.",
-                    "Tất cả dữ liệu được lưu an toàn tuyệt đối trong bộ nhớ máy của bạn.",
-                    "Bạn có thể thử bật/tắt nút 'Chế độ Ngoại Tuyến' (biểu tượng Wifi trên góc phải) để trải nghiệm cơ chế lưu trữ."
+                    "Ứng dụng hoàn toàn không yêu cầu kết nối mạng hay đăng ký tài khoản.",
+                    "Khi bạn ở trên máy bay, vùng không có sóng hoặc công tác nước ngoài, toàn bộ tính năng thêm chi tiêu, nộp quỹ, đổi tỷ giá, quyết toán VietQR và xuất báo cáo hoạt động trơn tru 100%.",
+                    "Tất cả dữ liệu thu chi được lưu an toàn tuyệt đối trong bộ nhớ máy của bạn.",
+                    "Để chia sẻ báo cáo cho đoàn, bạn chỉ cần dùng chức năng Xuất báo cáo CSV/Excel hoặc sao chép văn bản gửi qua Zalo/Email."
                 ),
                 stepsEn = listOf(
-                    "YES, absolutely! The app is designed with an Offline-First architecture.",
-                    "On airplanes, remote areas, or overseas trips without roaming, you can still add expenses, funds, and view settlements normally.",
-                    "All data is securely persisted on your local device storage.",
-                    "You can toggle the 'Offline Mode' icon on top bar anytime."
+                    "The app requires no internet connection or user accounts.",
+                    "On airplanes, remote areas, or overseas trips, all features including expense tracking, fund management, VietQR settlement, and reporting work 100% offline.",
+                    "All financial data is securely stored locally on your device.",
+                    "To share reports with your team, use the Export CSV/Excel or Copy Summary Report feature."
                 ),
-                tipsVi = "Không bao giờ lo mất dữ liệu hay bị gián đoạn ghi chép chi phí trong suốt chuyến công tác dài ngày.",
-                tipsEn = "Never worry about lost data or interrupted records during business trips.",
-                icon = Icons.Filled.WifiOff
+                tipsVi = "Bảo mật tuyệt đối, không thu thập thông tin và không lo mất dữ liệu hay lỗi mạng.",
+                tipsEn = "Absolute privacy with zero data collection and zero network dependence.",
+                icon = Icons.Filled.Shield
             )
         )
     }

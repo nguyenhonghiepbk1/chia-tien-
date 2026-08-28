@@ -144,63 +144,6 @@ fun BalanceChip(balance: Long, status: BalanceStatus, modifier: Modifier = Modif
 }
 
 @Composable
-fun OfflineStatusBanner(
-    isOffline: Boolean,
-    pendingCount: Int,
-    onToggleOffline: () -> Unit
-) {
-    val lang = LocalAppLanguage.current
-    Surface(
-        color = if (isOffline) Color(0xFFFEF3C7) else Color(0xFFECFDF5),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (isOffline) Icons.Filled.CloudOff else Icons.Filled.CloudDone,
-                    contentDescription = null,
-                    tint = if (isOffline) Color(0xFFD97706) else Color(0xFF059669),
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (isOffline) {
-                        if (lang == AppLanguage.VI) "Đang Offline • $pendingCount bản ghi chờ đồng bộ" else "Offline Mode • $pendingCount changes pending sync"
-                    } else {
-                        if (lang == AppLanguage.VI) "Đang kết nối Realtime • Đã đồng bộ 100%" else "Realtime Connected • 100% Synced"
-                    },
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isOffline) Color(0xFF92400E) else Color(0xFF065F46)
-                )
-            }
-            TextButton(
-                onClick = onToggleOffline,
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                modifier = Modifier.height(28.dp)
-            ) {
-                Text(
-                    text = if (isOffline) {
-                        if (lang == AppLanguage.VI) "Thử Online" else "Go Online"
-                    } else {
-                        if (lang == AppLanguage.VI) "Chuyển Offline" else "Go Offline"
-                    },
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isOffline) Color(0xFFB45309) else Color(0xFF047857)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun VietQrTransferDialog(
     transfer: SettlementTransfer,
     onDismiss: () -> Unit

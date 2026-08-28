@@ -23,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.ui.components.OfflineStatusBanner
 import com.example.ui.locale.AppLanguage
 import com.example.ui.locale.AppStrings
 import com.example.ui.locale.LocalAppLanguage
@@ -65,7 +64,6 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
     var showAddExpenseDialog by remember { mutableStateOf(false) }
     var showAddFundDialog by remember { mutableStateOf(false) }
     var showCreateTripDialog by remember { mutableStateOf(false) }
-    var showJoinTripDialog by remember { mutableStateOf(false) }
     var showExportReportDialog by remember { mutableStateOf(false) }
     var showUserGuideScreen by remember { mutableStateOf(false) }
 
@@ -216,27 +214,7 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
                                     },
                                     leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) }
                                 )
-                                DropdownMenuItem(
-                                    text = { Text(AppStrings.joinTripByCode(lang)) },
-                                    onClick = {
-                                        showJoinTripDialog = true
-                                        tripMenuExpanded = false
-                                    },
-                                    leadingIcon = { Icon(Icons.Filled.GroupAdd, contentDescription = null) }
-                                )
                             }
-                        }
-
-                        // Toggle Offline Simulator Button
-                        IconButton(
-                            onClick = { viewModel.toggleOfflineMode() },
-                            modifier = Modifier.testTag("toggle_offline_button")
-                        ) {
-                            Icon(
-                                imageVector = if (uiState.isOfflineMode) Icons.Filled.WifiOff else Icons.Filled.Wifi,
-                                contentDescription = AppStrings.offlineMode(lang),
-                                tint = if (uiState.isOfflineMode) AmberTertiary else EmeraldPrimary
-                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -284,13 +262,6 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // Offline Banner
-                OfflineStatusBanner(
-                    isOffline = uiState.isOfflineMode,
-                    pendingCount = uiState.pendingSyncCount,
-                    onToggleOffline = { viewModel.toggleOfflineMode() }
-                )
-
                 // Content per selected tab
                 when (currentTab) {
                     NavigationTab.DASHBOARD -> DashboardScreen(
@@ -302,7 +273,6 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
                         onOpenAddFund = { showAddFundDialog = true },
                         onOpenExportReport = { showExportReportDialog = true },
                         onOpenCreateTrip = { showCreateTripDialog = true },
-                        onOpenJoinTrip = { showJoinTripDialog = true },
                         onOpenUserGuide = { showUserGuideScreen = true },
                         onSwitchUser = { memberId -> viewModel.switchUserPersona(memberId) },
                         onSelectTrip = { tripId -> viewModel.selectTrip(tripId) },
@@ -396,16 +366,6 @@ fun TripFinanceApp(viewModel: TripFinanceViewModel) {
             onConfirm = { title, desc, code, start, end, admin, bName, bAcc, bHolder ->
                 viewModel.createTrip(title, desc, code, start, end, admin, bName, bAcc, bHolder)
                 showCreateTripDialog = false
-            }
-        )
-    }
-
-    if (showJoinTripDialog) {
-        JoinTripDialog(
-            onDismiss = { showJoinTripDialog = false },
-            onConfirm = { code, userName ->
-                viewModel.joinTripByCode(code, userName)
-                showJoinTripDialog = false
             }
         )
     }

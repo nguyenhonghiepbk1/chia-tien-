@@ -6,7 +6,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FlightTakeoff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,12 +19,11 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import com.example.data.entity.TripEntity
 import com.example.ui.theme.EmeraldPrimary
-import java.util.UUID
 
 @Composable
 fun CreateTripDialog(
@@ -40,11 +42,6 @@ fun CreateTripDialog(
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var joinCode by remember {
-        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        val code = (1..6).map { chars.random() }.joinToString("")
-        mutableStateOf(code)
-    }
     var adminName by remember { mutableStateOf("") }
     var adminBankName by remember { mutableStateOf("Vietcombank") }
     var adminBankAccount by remember { mutableStateOf("") }
@@ -57,16 +54,16 @@ fun CreateTripDialog(
         onDismiss()
     }
 
-    val isValid = title.isNotBlank() && joinCode.length == 6 && adminName.isNotBlank()
+    val isValid = title.isNotBlank() && adminName.isNotBlank()
 
     AlertDialog(
         onDismissRequest = safeDismiss,
         properties = DialogProperties(decorFitsSystemWindows = true),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Add, contentDescription = null, tint = EmeraldPrimary)
+                Icon(Icons.Filled.FlightTakeoff, contentDescription = null, tint = EmeraldPrimary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Tạo Đoàn Công Tác / Du Lịch Mới", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("Tạo Chuyến Đi / Đoàn Mới", fontSize = 17.sp, fontWeight = FontWeight.Bold)
             }
         },
         text = {
@@ -74,7 +71,7 @@ fun CreateTripDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Tên đoàn (VD: Du lịch Phú Quốc 2026) *") },
+                    label = { Text("Tên đoàn (VD: Du lịch Đà Nẵng 2026) *") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier
@@ -85,28 +82,16 @@ fun CreateTripDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Mô tả / Mục đích đoàn") },
+                    label = { Text("Mô tả / Mục đích chuyến đi") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
-                    value = joinCode,
-                    onValueChange = { if (it.length <= 6) joinCode = it.uppercase() },
-                    label = { Text("Mã tham gia 6 ký tự *") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Characters,
-                        imeAction = ImeAction.Next
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
                     value = adminName,
                     onValueChange = { adminName = it },
-                    label = { Text("Họ tên bạn (Trưởng đoàn) *") },
+                    label = { Text("Họ tên bạn (Trưởng đoàn / Người ghi chép) *") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth()
@@ -141,16 +126,17 @@ fun CreateTripDialog(
                     focusManager.clearFocus()
                     keyboardController?.hide()
                     val now = System.currentTimeMillis()
+                    val autoCode = "LOCAL_${System.currentTimeMillis() % 10000}"
                     onConfirm(
-                        title,
-                        description,
-                        joinCode,
+                        title.trim(),
+                        description.trim(),
+                        autoCode,
                         now,
                         now + 86400000L * 5,
-                        adminName,
-                        adminBankName.takeIf { it.isNotBlank() },
-                        adminBankAccount.takeIf { it.isNotBlank() },
-                        adminName
+                        adminName.trim(),
+                        adminBankName.trim().takeIf { it.isNotBlank() },
+                        adminBankAccount.trim().takeIf { it.isNotBlank() },
+                        adminName.trim()
                     )
                 },
                 enabled = isValid,
@@ -167,90 +153,8 @@ fun CreateTripDialog(
 }
 
 @Composable
-fun JoinTripDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (code: String, userName: String) -> Unit
-) {
-    var code by remember { mutableStateOf("") }
-    var userName by remember { mutableStateOf("") }
-
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val safeDismiss = {
-        focusManager.clearFocus()
-        keyboardController?.hide()
-        onDismiss()
-    }
-
-    val isValid = code.length == 6 && userName.isNotBlank()
-
-    AlertDialog(
-        onDismissRequest = safeDismiss,
-        properties = DialogProperties(decorFitsSystemWindows = true),
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.GroupAdd, contentDescription = null, tint = EmeraldPrimary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Tham Gia Đoàn Bằng Mã", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Nhập mã 6 ký tự được Trưởng đoàn cung cấp:", fontSize = 12.sp)
-
-                OutlinedTextField(
-                    value = code,
-                    onValueChange = { if (it.length <= 6) code = it.uppercase() },
-                    label = { Text("Mã đoàn (VD: DN2026)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Characters,
-                        imeAction = ImeAction.Next
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("join_code_input")
-                )
-
-                OutlinedTextField(
-                    value = userName,
-                    onValueChange = { userName = it },
-                    label = { Text("Họ và tên của bạn") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-                    }),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("join_user_name_input")
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                    onConfirm(code, userName)
-                },
-                enabled = isValid,
-                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                modifier = Modifier.testTag("submit_join_trip_button")
-            ) {
-                Text("Tham gia ngay")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = safeDismiss) { Text("Hủy") }
-        }
-    )
-}
-
-@Composable
 fun EditTripDialog(
-    trip: com.example.data.entity.TripEntity,
+    trip: TripEntity,
     onDismiss: () -> Unit,
     onConfirm: (title: String, description: String, startDate: Long, endDate: Long) -> Unit
 ) {
@@ -272,7 +176,7 @@ fun EditTripDialog(
         properties = DialogProperties(decorFitsSystemWindows = true),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Add, contentDescription = null, tint = EmeraldPrimary)
+                Icon(Icons.Filled.Edit, contentDescription = null, tint = EmeraldPrimary)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Chỉnh Sửa Thông Tin Đoàn", fontSize = 17.sp, fontWeight = FontWeight.Bold)
             }
@@ -300,12 +204,6 @@ fun EditTripDialog(
                     }),
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                Text(
-                    text = "Mã đoàn: ${trip.joinCode} (Cố định)",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         },
         confirmButton = {
@@ -313,7 +211,7 @@ fun EditTripDialog(
                 onClick = {
                     focusManager.clearFocus()
                     keyboardController?.hide()
-                    onConfirm(title, description, trip.startDate, trip.endDate)
+                    onConfirm(title.trim(), description.trim(), trip.startDate, trip.endDate)
                 },
                 enabled = isValid,
                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
@@ -337,13 +235,13 @@ fun DeleteTripDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
         },
         title = {
             Text("Xác Nhận Xóa Đoàn", fontWeight = FontWeight.Bold)
         },
         text = {
-            Text("Bạn có chắc chắn muốn xóa đoàn '$tripTitle'? Toàn bộ chi tiêu, nộp quỹ, thành viên và báo cáo thuộc đoàn này sẽ bị xóa hoàn toàn khỏi thiết bị.")
+            Text("Bạn có chắc chắn muốn xóa đoàn '$tripTitle'? Toàn bộ chi tiêu, nộp quỹ, thành viên và dữ liệu thuộc đoàn này sẽ bị xóa vĩnh viễn khỏi thiết bị.")
         },
         confirmButton = {
             Button(

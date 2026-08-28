@@ -148,6 +148,29 @@ object ReportGenerator {
             appendLine(String.format("  • %-20s: %15s (%4.1f%%) - %d khoản", catMap[cat] ?: cat, NumberFormatUtils.formatVnd(sum), pct, list.size))
         }
         appendLine()
+        appendLine("V. DANH SÁCH SỐ TÀI KHOẢN NGÂN HÀNG CÁC THÀNH VIÊN TRONG ĐOÀN")
+        appendLine(String.format("%-4s | %-18s | %-12s | %-12s | %-16s | %-18s", "STT", "Họ và tên", "Vai trò", "Ngân hàng", "Số tài khoản", "Chủ tài khoản"))
+        appendLine("--------------------------------------------------------------------------------")
+        members.forEachIndexed { i, m ->
+            val roleName = when (m.role) {
+                "ADMIN" -> "Trưởng đoàn"
+                "TREASURER" -> "Thủ quỹ"
+                "MEMBER" -> "Thành viên"
+                else -> "Người xem"
+            }
+            appendLine(
+                String.format(
+                    "%-4d | %-18s | %-12s | %-12s | %-16s | %-18s",
+                    i + 1,
+                    m.name.take(18),
+                    roleName,
+                    (m.bankName ?: "Chưa có").take(12),
+                    (m.bankAccount ?: "Chưa có").take(16),
+                    (m.bankAccountHolder ?: m.name.uppercase()).take(18)
+                )
+            )
+        }
+        appendLine()
         appendLine("================================================================================")
         appendLine("                                   XÁC NHẬN")
         appendLine("           TRƯỞNG ĐOÀN                                THỦ QUỸ")

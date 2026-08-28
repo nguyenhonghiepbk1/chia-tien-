@@ -30,8 +30,6 @@ data class UiState(
     val exchangeRates: List<ExchangeRateEntity> = emptyList(),
     val auditLogs: List<AuditLogEntity> = emptyList(),
     val snapshots: List<SettlementSnapshotEntity> = emptyList(),
-    val isOfflineMode: Boolean = false,
-    val pendingSyncCount: Int = 0,
     val selectedCategoryFilter: String? = null,
     val searchQuery: String = "",
     val errorMessage: String? = null,
@@ -46,8 +44,6 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _currentTripId = MutableStateFlow<String?>("trip_danang_2026")
     private val _currentMemberId = MutableStateFlow<String?>("member_1")
-    private val _isOfflineMode = MutableStateFlow(false)
-    private val _pendingSyncCount = MutableStateFlow(0)
     private val _selectedCategoryFilter = MutableStateFlow<String?>(null)
     private val _searchQuery = MutableStateFlow("")
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -61,8 +57,6 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
     private data class FilterState(
         val categoryFilter: String?,
         val query: String,
-        val isOffline: Boolean,
-        val pendingCount: Int,
         val currentMemberId: String?,
         val language: AppLanguage
     )
@@ -88,11 +82,9 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
         val filterFlow = combine(
             _selectedCategoryFilter,
             _searchQuery,
-            _isOfflineMode,
-            _pendingSyncCount,
             combine(_currentMemberId, _language) { mId, lang -> mId to lang }
-        ) { cat, q, off, pending, (mId, lang) ->
-            FilterState(cat, q, off, pending, mId, lang)
+        ) { cat, q, (mId, lang) ->
+            FilterState(cat, q, mId, lang)
         }
 
         uiState = combine(
@@ -112,8 +104,6 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                 flowOf(
                     UiState(
                         allTrips = trips,
-                        isOfflineMode = filters.isOffline,
-                        pendingSyncCount = filters.pendingCount,
                         errorMessage = errorMsg,
                         successMessage = successMsg,
                         language = filters.language
@@ -210,8 +200,6 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                         exchangeRates = core.rates,
                         auditLogs = aux.logs,
                         snapshots = aux.snapshots,
-                        isOfflineMode = filters.isOffline,
-                        pendingSyncCount = filters.pendingCount,
                         selectedCategoryFilter = filters.categoryFilter,
                         searchQuery = filters.query,
                         errorMessage = errorMsg,
@@ -243,17 +231,6 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
 
     fun switchUserPersona(memberId: String) {
         _currentMemberId.value = memberId
-    }
-
-    fun toggleOfflineMode() {
-        val newStatus = !_isOfflineMode.value
-        _isOfflineMode.value = newStatus
-        if (!newStatus) {
-            _pendingSyncCount.value = 0
-            showSuccess("Đã kết nối lại Internet. Toàn bộ dữ liệu đã được đồng bộ thành công!")
-        } else {
-            showSuccess("Đã chuyển sang chế độ Offline. Dữ liệu sẽ lưu cục bộ trên máy.")
-        }
     }
 
     fun setCategoryFilter(category: String?) {
@@ -306,22 +283,6 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
                 showSuccess("Tạo đoàn '$title' thành công!")
             } catch (e: Exception) {
                 showError("Lỗi khi tạo đoàn: ${e.message}")
-            }
-        }
-    }
-
-    fun joinTripByCode(code: String, userName: String) {
-        viewModelScope.launch {
-            try {
-                val tripId = repository.joinTripByCode(code, userName)
-                if (tripId != null) {
-                    _currentTripId.value = tripId
-                    showSuccess("Đã tham gia đoàn thành công với mã $code!")
-                } else {
-                    showError("Không tìm thấy đoàn nào với mã '$code'!")
-                }
-            } catch (e: Exception) {
-                showError("Lỗi tham gia đoàn: ${e.message}")
             }
         }
     }
@@ -419,7 +380,7 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
             note = note,
             timestamp = timestamp,
             createdMemberId = currentMember.id,
-            isSynced = !_isOfflineMode.value
+            isSynced = true
         )
 
         val splitEntities = splits.map { (memberId, amount) ->
@@ -435,12 +396,7 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 repository.addExpenseWithSplits(expense, splitEntities, currentMember)
-                if (_isOfflineMode.value) {
-                    _pendingSyncCount.value += 1
-                    showSuccess("Đã lưu chi tiêu vào bộ nhớ Offline (chờ đồng bộ)!")
-                } else {
-                    showSuccess("Đã thêm khoản chi '$title' thành công!")
-                }
+                showSuccess("Đã thêm khoản chi '$title' thành công!")
             } catch (e: Exception) {
                 showError("Lỗi thêm chi tiêu: ${e.message}")
             }
@@ -492,7 +448,7 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
             note = note,
             timestamp = timestamp,
             createdMemberId = currentMember.id,
-            isSynced = !_isOfflineMode.value
+            isSynced = true
         )
 
         val splitEntities = splits.map { (memberId, amount) ->
@@ -711,11 +667,6 @@ class TripFinanceViewModel(application: Application) : AndroidViewModel(applicat
 
         if (currentMember.role != "ADMIN") {
             showError("Chỉ Trưởng đoàn (Admin) mới có quyền khóa sổ và quyết toán chuyến đi!")
-            return
-        }
-
-        if (state.isOfflineMode) {
-            showError("Chế độ Offline đang bật. Vui lòng kết nối mạng để khóa sổ và quyết toán nhằm tránh xung đột!")
             return
         }
 

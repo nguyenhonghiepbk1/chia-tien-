@@ -55,7 +55,6 @@ fun SettlementScreen(
 
     val isAdmin = uiState.currentMember?.role == "ADMIN"
     val isBalanced = uiState.financialSummary.isBalanced
-    val isOffline = uiState.isOfflineMode
 
     LazyColumn(
         modifier = Modifier
@@ -147,7 +146,7 @@ fun SettlementScreen(
 
                             Button(
                                 onClick = { showFinalizeDialog = true },
-                                enabled = isAdmin && !isOffline && isBalanced,
+                                enabled = isAdmin && isBalanced,
                                 colors = ButtonDefaults.buttonColors(containerColor = IndigoSecondary),
                                 shape = RoundedCornerShape(10.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
@@ -163,10 +162,6 @@ fun SettlementScreen(
                     if (!isAdmin) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text("• Chỉ Trưởng đoàn (Admin) mới có quyền khóa sổ chuyến đi", fontSize = 10.sp, color = Color(0xFFEF4444))
-                    }
-                    if (isOffline) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("• Đang ở chế độ Offline. Vui lòng kết nối mạng để khóa sổ", fontSize = 10.sp, color = Color(0xFFD97706))
                     }
                     if (!isBalanced) {
                         Spacer(modifier = Modifier.height(4.dp))
